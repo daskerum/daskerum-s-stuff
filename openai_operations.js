@@ -1,4 +1,3 @@
-// Import modules
 import OpenAI from "openai";
 
 export class OpenAIOperations {
@@ -12,7 +11,6 @@ export class OpenAIOperations {
     }
 
     check_history_length() {
-        // Use template literals to concatenate strings
         console.log(`Conversations in History: ${((this.messages.length / 2) -1)}/${this.history_length}`);
         if(this.messages.length > ((this.history_length * 2) + 1)) {
             console.log('Message amount in history exceeded. Removing oldest user and agent messages.');
@@ -20,15 +18,22 @@ export class OpenAIOperations {
         }
     }
 
+    // Rastgele etkileşim fonksiyonu
+    randomInteraction(randomInt) {
+        const randomChance = Math.floor(Math.random() * 100); // 0-99 arası rastgele sayı
+        if (randomChance < randomInt) {
+            console.log("Rastgele etkileşim yapıldı!");
+            // Etkileşim yapılacak işlemleri burada gerçekleştirin
+        } else {
+            console.log("Rastgele etkileşim yapılmadı.");
+        }
+    }
+
     async make_openai_call(text) {
         try {
-            //Add user message to  messages
             this.messages.push({role: "user", content: text});
-
-            //Check if message history is exceeded
             this.check_history_length();
 
-            // Use await to get the response from openai
             const response = await this.openai.chat.completions.create({
                 model: this.model_name,
                 messages: this.messages,
@@ -39,18 +44,15 @@ export class OpenAIOperations {
                 presence_penalty: 0,
             });
 
-            // Check if response has choices
             if (response.choices) {
                 let agent_response = response.choices[0].message.content;
                 console.log(`Agent Response: ${agent_response}`);
                 this.messages.push({role: "assistant", content: agent_response});
                 return agent_response;
             } else {
-                // Handle the case when no choices are returned
                 throw new Error("No choices returned from openai");
             }
         } catch (error) {
-            // Handle any errors that may occur
             console.error(error);
             return "Sorry, something went wrong. Please try again later.";
         }
@@ -68,17 +70,14 @@ export class OpenAIOperations {
               presence_penalty: 0,
             });
 
-            // Check if response has choices
             if (response.choices) {
                 let agent_response = response.choices[0].text;
                 console.log(`Agent Response: ${agent_response}`);
                 return agent_response;
             } else {
-                // Handle the case when no choices are returned
                 throw new Error("No choices returned from openai");
             }
         } catch (error) {
-            // Handle any errors that may occur
             console.error(error);
             return "Sorry, something went wrong. Please try again later.";
         }
