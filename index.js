@@ -91,10 +91,7 @@ if (!ENABLE_CHANNEL_POINTS) {
     ENABLE_CHANNEL_POINTS = "false";
 }
 
-// init global variables
-const MAX_LENGTH = 399
-let file_context = "You are a helpful Twitch Chatbot."
-let last_user_message = ""
+
 
 // setup twitch bot
 const channels = CHANNELS;
