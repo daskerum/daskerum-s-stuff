@@ -42,16 +42,19 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
-bot.onMessage(async (channel, user, message, self) => {
-    if (self) return;
-    const randomResponse = openai_ops.randomInteraction();
-    if (randomResponse) bot.say(channel, randomResponse);
+// index.js
 
-    if (ENABLE_CHANNEL_POINTS && user["msg-id"] === "highlighted-message") {
-        const response = await openai_ops.make_openai_call(message);
-        bot.say(channel, response);
+bot.onMessage(async (channel, user, message, self) => {
+    if (self) return; // Ignore messages from the bot itself
+
+    // Check for random interaction first
+    const randomResponse = await openai_ops.randomInteraction();
+    if (randomResponse) {
+        bot.say(channel, randomResponse);
+        return; // Stop further processing to prevent command handling
     }
 
+    // Handle commands
     if (message.toLowerCase().startsWith(COMMAND_NAME[0])) {
         let text = message.slice(COMMAND_NAME[0].length).trim();
         if (SEND_USERNAME) text = `Message from user ${user.username}: ${text}`;
