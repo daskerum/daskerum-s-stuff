@@ -2,28 +2,14 @@
 import OpenAI from "openai";
 
 export class OpenAIOperations {
-    constructor(openai_key, model_name, history_length, file_context) {
+    constructor(file_context, openai_key, model_name, history_length) {
+        this.messages = [{role: "system", content: file_context}];
         this.openai = new OpenAI({
             apiKey: openai_key,
         });
         this.model_name = model_name;
         this.history_length = history_length;
-        this.file_context = file_context;
-        this.basePrompt = "";  // Boş bir dizeyle başlatın
-        this.messages = []; // Mesajları depolamak için boş bir dizi oluşturun
-        this.loadPrompt();  // Başlangıçta önbelleği asenkron olarak yükleyin
     }
-
-    async loadPrompt() {
-        try {
-            this.basePrompt = await fs.readFile("./file_context.txt", 'utf8');
-            console.log("Prompt başarıyla yüklendi");
-        } catch (error) {
-            console.error("Dosya yüklenemedi:", error);
-            this.basePrompt = "Dosya yüklenemediği için varsayılan bir ileti.";
-        }
-    }
-
 
     check_history_length() {
         // Use template literals to concatenate strings
