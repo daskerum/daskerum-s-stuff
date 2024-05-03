@@ -36,9 +36,6 @@ let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS || "false"; // Def
 // Define BOT_PROMPT variable
 let BOT_PROMPT = "Korsan gibi davran, dini ve politik konulara girme, saygılı ol.";
 
-// Create OpenAIOperations instance with BOT_PROMPT
-const openai_ops = new OpenAIOperations(OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, BOT_PROMPT);
-
 
 if (!GPT_MODE) {
     GPT_MODE = "CHAT"
@@ -98,8 +95,8 @@ console.log("Channels: " + channels)
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, channels, OPENAI_API_KEY, ENABLE_TTS);
 
 // setup openai operations
-file_context = fs.readFileSync("./file_context.txt", 'utf8');
-const openai_ops = new OpenAIOperations(file_context, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
+const BOT_PROMPT = "Korsan gibi davran, dini ve politik konulara girme, saygılı ol.";
+const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
 
 // setup twitch bot callbacks
 bot.onConnected((addr, port) => {
