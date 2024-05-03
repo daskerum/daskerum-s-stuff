@@ -32,6 +32,10 @@ let CHANNELS = process.env.CHANNELS // comma separated list of channels to join
 let SEND_USERNAME = process.env.SEND_USERNAME // send username in message to openai
 let ENABLE_TTS = process.env.ENABLE_TTS // enable text to speech
 let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS; // enable channel points
+let PERSONA_DESCRIPTION = process.env.PERSONA_DESCRIPTION; // Persona's general description and commands
+let PERSONA_STYLE = process.env.PERSONA_STYLE; // The style of the persona (e.g., formal, humorous)
+let PERSONA_INSTRUCTIONS = process.env.PERSONA_INSTRUCTIONS; // Specific instructions for the persona (e.g., use nautical terms for a pirate)
+
 
 if (!GPT_MODE) {
     GPT_MODE = "CHAT"
