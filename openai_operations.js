@@ -18,23 +18,30 @@ export class OpenAIOperations {
         }
     }
 
-    async make_openai_call(text) {
-        const personaDescription = process.env.PERSONA_DESCRIPTION || "Default description";
-        const personaStyle = process.env.PERSONA_STYLE || "Default style";
-        const personaInstructions = process.env.PERSONA_INSTRUCTIONS || "Default instructions";
-        const prompt = `${personaDescription} ${personaStyle} ${personaInstructions} ${text}`;
+   async make_openai_call(text) {
+    // Persona bilgilerini çevre değişkenlerinden alın
+    const personaDescription = process.env.PERSONA_DESCRIPTION || "Default description";
+    const personaStyle = process.env.PERSONA_STYLE || "Default style";
+    const personaInstructions = process.env.PERSONA_INSTRUCTIONS || "Default instructions";
 
-        try {
-            const response = await this.openai.chat.completions.create({
-                model: this.model_name,
-                messages: this.messages,
-                prompt: prompt,
-                temperature: 1,
-                max_tokens: 256,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-            });
+    // Yeni mesajı kullanıcının mesajı olarak ekle
+    this.messages.push({role: "user", content: text});
+
+//Check if message history is exceeded
+            this.check_history_length();
+
+
+    // Chat completions için gerekli parametreleri ayarla
+    try {
+        const response = await this.openai.chat.completions.create({
+            model: this.model_name,
+            messages: this.messages,
+            temperature: 1,
+            max_tokens: 256,
+            top_p: 1,
+            frequency_penalty: 0,
+            presence_penalty: 0,
+        });
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
