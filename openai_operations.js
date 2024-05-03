@@ -36,12 +36,14 @@ randomInteraction() {
 async make_openai_call(text) {
     const currentTime = Date.now();
     if (currentTime - this.lastCalled < this.cooldownPeriod) {
-        console.log("Cooldown in effect. Try again later.");
-        return "Please wait a moment before trying again.";
+        console.log("Cooldown in effect. Try again later.");  // Log to console instead of sending to chat
+        return null;  // Return null to indicate no response should be sent to the chat
     }
-    
+
+    this.lastCalled = currentTime;  // Update last called time immediately to block further calls during cooldown
+
     try {
-        this.messages.push({role: "user", content: text});  // Log user interaction
+        this.messages.push({role: "user", content: text});
         this.check_history_length();
 
         const response = await this.openai.chat.completions.create({
@@ -51,14 +53,11 @@ async make_openai_call(text) {
             max_tokens: 100,
             top_p: 1,
             frequency_penalty: 0.5,
-            presence_penalty: 0.6
+            presence_penalty: 0.6,
         });
-
-        this.lastCalled = currentTime;  // Update last called time after a successful request
 
         if (response.choices && response.choices.length > 0) {
             let agent_response = response.choices[0].message.content;
-            console.log(`Agent Response: ${agent_response}`);
             this.messages.push({role: "assistant", content: agent_response});
             return agent_response;
         } else {
@@ -69,7 +68,6 @@ async make_openai_call(text) {
         return "Sorry, something went wrong. Please try again later.";
     }
 }
-
     getRecentMessages() {
         // This function returns the last few messages to give context to the AI
         return this.messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n');
