@@ -46,16 +46,19 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
-// Bot mesaj işleme
 bot.onMessage(async (channel, user, message, self) => {
     if (self) return;  // Bot kendi mesajlarına cevap vermemeli
 
     const randomResponse = openai_ops.randomInteraction();
-    if (randomResponse) bot.say(channel, randomResponse);
+    if (randomResponse && isResponseWithinGuidelines(randomResponse)) {
+        bot.say(channel, randomResponse);
+    }
 
     if (ENABLE_CHANNEL_POINTS && user["msg-id"] === "highlighted-message") {
         const response = await openai_ops.make_openai_call(message);
-        bot.say(channel, response);
+        if (isResponseWithinGuidelines(response)) {
+            bot.say(channel, response);
+        }
     }
 
     if (message.toLowerCase().startsWith(COMMAND_NAME[0])) {
@@ -64,10 +67,12 @@ bot.onMessage(async (channel, user, message, self) => {
 
         const response = await openai_ops.make_openai_call(text);
         response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
-            setTimeout(() => bot.say(channel, msg), 1000 * index);
+            if (isResponseWithinGuidelines(msg)) {
+                setTimeout(() => bot.say(channel, msg), 1000 * index);
+            }
         });
 
-        if (ENABLE_TTS) {
+        if (ENABLE_TTS && isResponseWithinGuidelines(response)) {
             try {
                 const ttsAudioUrl = await bot.sayTTS(channel, response, user.userstate);
                 notifyFileChange(ttsAudioUrl);
@@ -77,6 +82,12 @@ bot.onMessage(async (channel, user, message, self) => {
         }
     }
 });
+
+function isResponseWithinGuidelines(response) {
+    // Burada, response'un BOT_PROMPT kurallarına uygun olup olmadığını kontrol eden bir mantık ekleyebilirsiniz.
+    return true;  // Örnek olarak her yanıtı geçerli kabul ediyoruz.
+}
+
 
 // WebSocket for updates
 app.ws('/check-for-updates', (ws, req) => {
