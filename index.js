@@ -33,7 +33,18 @@ let SEND_USERNAME = process.env.SEND_USERNAME // send username in message to ope
 let ENABLE_TTS = process.env.ENABLE_TTS // enable text to speech
 let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS // enable channel points
 let BOT_PROMPT = process.env.BOT_PROMPT; //"Korsan gibi davran, dini ve politik konulara girme, saygılı ol."
+let RANDOM_INT = parseInt(process.env.RANDOM_INT); // 0-100 arası rastgelelik oranı
 
+// Rastgele etkileşim fonksiyonu
+function randomInteraction(randomInt) {
+    const randomChance = Math.floor(Math.random() * 100); // 0-99 arası rastgele sayı
+    if (randomChance < randomInt) {
+        console.log("Rastgele etkileşim yapıldı!");
+        // Etkileşim yapılacak işlemleri burada gerçekleştirin
+    } else {
+        console.log("Rastgele etkileşim yapılmadı.");
+    }
+}
 
 if (!GPT_MODE) {
     GPT_MODE = "CHAT"
@@ -210,6 +221,9 @@ if (process.env.GPT_MODE === "CHAT"){
 }
 
 app.get('/gpt/:text', async (req, res) => {
+
+// Rastgele etkileşim fonksiyonunu çağırma
+randomInteraction(RANDOM_INT);
 
     //The agent should receive Username:Message in the text to identify conversations with different users in his history.
     const text = req.params.text
