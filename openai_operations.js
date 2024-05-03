@@ -2,15 +2,14 @@ import OpenAI from "openai";
 import fs from 'fs/promises';
 
 export class OpenAIOperations {
-    constructor(openai_key, model_name, history_length, file_context) {
+    constructor(openai_key, model_name, history_length, filePath) {
         this.openai = new OpenAI({
             apiKey: openai_key,
         });
         this.model_name = model_name;
         this.history_length = history_length;
-        this.filePath = file_context;
+        this.filePath = file_context.txt
         this.basePrompt = "";  // Initialize with an empty string
-        this.messages = []; // Initialize an empty array to store messages
         this.loadPrompt();  // Asynchronously load the prompt at startup
     }
 
