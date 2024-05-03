@@ -1,17 +1,19 @@
+// index.js
+
 import express from 'express';
 import fs from 'fs';
 import ws from 'ws';
 
 import expressWs from 'express-ws';
 
-import {job} from './keep_alive.js';
+import { job } from './keep_alive.js';
 
-import {OpenAIOperations} from './openai_operations.js';
-import {TwitchBot} from './twitch_bot.js';
+import { OpenAIOperations } from './openai_operations.js';
+import { TwitchBot } from './twitch_bot.js';
 
 // start keep alive cron job
 job.start();
-console.log(process.env)
+console.log(process.env);
 
 // setup express app
 const app = express();
@@ -21,73 +23,72 @@ const expressWsInstance = expressWs(app);
 app.set('view engine', 'ejs');
 
 // load env variables
-let GPT_MODE = process.env.GPT_MODE // CHAT or PROMPT
-let HISTORY_LENGTH = process.env.HISTORY_LENGTH // number of messages to keep in history
-let OPENAI_API_KEY = process.env.OPENAI_API_KEY // openai api key
-let MODEL_NAME = process.env.MODEL_NAME // openai model name (e.g. gpt-3, gpt-3.5-turbo, gpt-4)
-let TWITCH_USER = process.env.TWITCH_USER // twitch bot username
-let TWITCH_AUTH =  process.env.TWITCH_AUTH // tmi auth token
-let COMMAND_NAME = process.env.COMMAND_NAME // comma separated list of commands to trigger bot (e.g. !gpt, !chat)
-let CHANNELS = process.env.CHANNELS // comma separated list of channels to join
-let SEND_USERNAME = process.env.SEND_USERNAME // send username in message to openai
-let ENABLE_TTS = process.env.ENABLE_TTS // enable text to speech
+let GPT_MODE = process.env.GPT_MODE; // CHAT or PROMPT
+let HISTORY_LENGTH = process.env.HISTORY_LENGTH; // number of messages to keep in history
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY; // openai api key
+let MODEL_NAME = process.env.MODEL_NAME; // openai model name (e.g. gpt-3, gpt-3.5-turbo, gpt-4)
+let TWITCH_USER = process.env.TWITCH_USER; // twitch bot username
+let TWITCH_AUTH = process.env.TWITCH_AUTH; // tmi auth token
+let COMMAND_NAME = process.env.COMMAND_NAME; // comma separated list of commands to trigger bot (e.g. !gpt, !chat)
+let CHANNELS = process.env.CHANNELS; // comma separated list of channels to join
+let SEND_USERNAME = process.env.SEND_USERNAME; // send username in message to openai
+let ENABLE_TTS = process.env.ENABLE_TTS; // enable text to speech
 let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS; // enable channel points
 
-
 if (!GPT_MODE) {
-    GPT_MODE = "CHAT"
+    GPT_MODE = "CHAT";
 }
 if (!HISTORY_LENGTH) {
-    HISTORY_LENGTH = 5
+    HISTORY_LENGTH = 5;
 }
 if (!OPENAI_API_KEY) {
-    console.log("No OPENAI_API_KEY found. Please set it as environment variable.")
+    console.log("No OPENAI_API_KEY found. Please set it as environment variable.");
 }
 if (!MODEL_NAME) {
-    MODEL_NAME = "gpt-3.5-turbo"
+    MODEL_NAME = "gpt-3.5-turbo";
 }
 if (!TWITCH_USER) {
-    TWITCH_USER = "oSetinhasBot"
-    console.log("No TWITCH_USER found. Using oSetinhasBot as default.")
+    TWITCH_USER = "oSetinhasBot";
+    console.log("No TWITCH_USER found. Using oSetinhasBot as default.");
 }
 if (!TWITCH_AUTH) {
     // https://dev.twitch.tv/console
     // https://twitchapps.com/tmi/
-    TWITCH_AUTH = "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2"
-    console.log("No TWITCH_AUTH found. Using oSetinhasBot auth as default.")
+    TWITCH_AUTH = "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
+    console.log("No TWITCH_AUTH found. Using oSetinhasBot auth as default.");
 }
 if (!COMMAND_NAME) {
-    COMMAND_NAME = ["!gpt"]
+    COMMAND_NAME = ["!gpt"];
 } else {
     // split commands by comma into array
-    COMMAND_NAME = COMMAND_NAME.split(",")
+    COMMAND_NAME = COMMAND_NAME.split(",");
 }
-COMMAND_NAME = COMMAND_NAME.map(function(x){ return x.toLowerCase() })
+COMMAND_NAME = COMMAND_NAME.map(function(x) { return x.toLowerCase(); });
 if (!CHANNELS) {
-    CHANNELS = ["oSetinhas", "jones88"]
+    CHANNELS = ["oSetinhas", "jones88"];
 } else {
     // split channels by comma into array
-    CHANNELS = CHANNELS.split(",")
+    CHANNELS = CHANNELS.split(",");
 }
 if (!SEND_USERNAME) {
-    SEND_USERNAME = "true"
+    SEND_USERNAME = "true";
 }
 if (!ENABLE_TTS) {
-    ENABLE_TTS = "false"
+    ENABLE_TTS = "false";
 }
 if (!ENABLE_CHANNEL_POINTS) {
     ENABLE_CHANNEL_POINTS = "false";
 }
 
 // init global variables
-const MAX_LENGTH = 399
-let file_context = "You are a helpful Twitch Chatbot."
-let last_user_message = ""
+const MAX_LENGTH = 399;
+let file_context = "You are a helpful Twitch Chatbot.";
+let last_user_message = "";
 
 // setup twitch bot
 const channels = CHANNELS;
 const channel = channels[0];
-console.log("Channels: " + channels)
+console.log("Channels: " + channels);
 
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, channels, OPENAI_API_KEY, ENABLE_TTS);
 
@@ -102,7 +103,7 @@ bot.onConnected((addr, port) => {
     // join channels
     channels.forEach(channel => {
         console.log(`* Joining ${channel}`);
-        console.log(`* Saying hello in ${channel}`)
+        console.log(`* Saying hello in ${channel}`);
     });
 });
 
@@ -121,7 +122,7 @@ bot.connect(
     }
 );
 
-bot.onMessage(async (channel, user, message, self) => {
+bot.onMessage(async(channel, user, message, self) => {
     if (self) return;
 
     if (ENABLE_CHANNEL_POINTS) {
@@ -137,7 +138,7 @@ bot.onMessage(async (channel, user, message, self) => {
         let text = message.slice(COMMAND_NAME.length);
 
         if (SEND_USERNAME) {
-            text = "Message from user " + user.username + ": " + text
+            text = "Message from user " + user.username + ": " + text;
         }
 
         // make openai call
@@ -176,46 +177,46 @@ app.ws('/check-for-updates', (ws, req) => {
 
 // setup bot
 const messages = [
-    {role: "system", content: "You are a helpful Twitch Chatbot."}
+    { role: "system", content: "You are a helpful Twitch Chatbot." }
 ];
 
-console.log("GPT_MODE is " + GPT_MODE)
-console.log("History length is " + HISTORY_LENGTH)
-console.log("OpenAI API Key:" + OPENAI_API_KEY)
-console.log("Model Name:" + MODEL_NAME)
+console.log("GPT_MODE is " + GPT_MODE);
+console.log("History length is " + HISTORY_LENGTH);
+console.log("OpenAI API Key:" + OPENAI_API_KEY);
+console.log("Model Name:" + MODEL_NAME);
 
-app.use(express.json({extended: true, limit: '1mb'}))
-app.use('/public', express.static('public'))
+app.use(express.json({ extended: true, limit: '1mb' }));
+app.use('/public', express.static('public'));
 
 app.all('/', (req, res) => {
-    console.log("Just got a request!")
+    console.log("Just got a request!");
     res.render('pages/index');
     //res.sendFile(process.env.RENDER_SRC_ROOT + '/index.ejs')
     //res.send('Yo!')
-})
+});
 
-if (process.env.GPT_MODE === "CHAT"){
+if (process.env.GPT_MODE === "CHAT") {
     fs.readFile("./file_context.txt", 'utf8', function(err, data) {
         if (err) throw err;
-        console.log("Reading context file and adding it as system level message for the agent.")
+        console.log("Reading context file and adding it as system level message for the agent.");
         messages[0].content = data;
     });
 } else {
     fs.readFile("./file_context.txt", 'utf8', function(err, data) {
         if (err) throw err;
-        console.log("Reading context file and adding it in front of user prompts:")
+        console.log("Reading context file and adding it in front of user prompts:");
         file_context = data;
         console.log(file_context);
     });
 }
 
-app.get('/gpt/:text', async (req, res) => {
+app.get('/gpt/:text', async(req, res) => {
 
     //The agent should receive Username:Message in the text to identify conversations with different users in his history.
-    const text = req.params.text
+    const text = req.params.text;
 
     // define function to check history length and perform bot response
-    const answer_question = async (answer) => {
+    const answer_question = async(answer) => {
         if (answer.length > MAX_LENGTH) {
             const messages = answer.match(new RegExp(`.{1,${MAX_LENGTH}}`, "g"));
             messages.forEach((message, index) => {
@@ -226,29 +227,29 @@ app.get('/gpt/:text', async (req, res) => {
         } else {
             bot.say(channel, answer);
         }
-    }
+    };
 
-    let answer = ""
+    let answer = "";
     if (GPT_MODE === "CHAT") {
         //CHAT MODE EXECUTION
         answer = await openai_ops.make_openai_call(text);
-    } else if(GPT_MODE === "PROMPT") {
+    } else if (GPT_MODE === "PROMPT") {
         //PROMPT MODE EXECUTION
 
         // create prompt based on file_context and the user prompt
         let prompt = file_context;
-        prompt += "\n\nUser: " + text + "\nAgent:"
+        prompt += "\n\nUser: " + text + "\nAgent:";
         answer = await openai_ops.make_openai_call_completion(prompt);
     } else {
         //ERROR MODE EXECUTION
-        console.log("ERROR: GPT_MODE is not set to CHAT or PROMPT. Please set it as environment variable.")
+        console.log("ERROR: GPT_MODE is not set to CHAT or PROMPT. Please set it as environment variable.");
     }
 
     // send response
-    await answer_question(answer)
+    await answer_question(answer);
 
-    res.send(answer)
-})
+    res.send(answer);
+});
 
 // make app always listening to twitch chat and get new messages starting with !gpt on port 3000
 const server = app.listen(3000, () => {
