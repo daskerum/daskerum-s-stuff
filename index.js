@@ -7,7 +7,6 @@ import { job } from './keep_alive.js';
 import { OpenAIOperations } from './openai_operations.js';
 import { TwitchBot } from './twitch_bot.js';
 
-// Environment and default values setup
 let GPT_MODE = process.env.GPT_MODE || "CHAT";
 let HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH || "5");
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -44,8 +43,7 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
 bot.onMessage(async (channel, user, message, self) => {
-    if (self) return;  // Ignore messages from the bot itself
-
+    if (self) return;
     const randomResponse = openai_ops.randomInteraction();
     if (randomResponse) bot.say(channel, randomResponse);
 
@@ -80,7 +78,7 @@ app.ws('/check-for-updates', (ws, req) => {
 
 app.all('/', (req, res) => res.render('pages/index'));
 
-const server = app.listen 3000, () => console.log('Server running on port 3000'));
+const server = app.listen(3000, () => console.log('Server running on port 3000'));
 const wss = expressWsInstance.getWss();
 
 function notifyFileChange(url) {
