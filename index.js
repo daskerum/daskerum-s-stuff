@@ -43,14 +43,14 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
 bot.onMessage(async (channel, user, message, self) => {
-    if (self) return; // Ignore messages from the bot itself
+    if (self) return;  // Ignore messages from the bot itself
 
-    // Handle random interactions that are not commands
+    // Handle random interactions not triggered by commands
     if (!message.startsWith('!')) {
         const randomResponse = await openai_ops.randomInteraction();
         if (randomResponse) {
             bot.say(channel, randomResponse);
-            return; // Stop further processing to prevent command handling
+            return;  // Stop further processing
         }
     }
 
@@ -58,6 +58,7 @@ bot.onMessage(async (channel, user, message, self) => {
     if (message.toLowerCase().startsWith(COMMAND_NAME[0])) {
         let text = message.slice(COMMAND_NAME[0].length).trim();
         if (SEND_USERNAME) text = `Message from user ${user.username}: ${text}`;
+        text = BOT_PROMPT + " " + text;  // Ensure BOT_PROMPT influences the conversation
 
         const response = await openai_ops.make_openai_call(text);
         response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
@@ -74,6 +75,7 @@ bot.onMessage(async (channel, user, message, self) => {
         }
     }
 });
+
 
 app.ws('/check-for-updates', (ws, req) => {
     ws.on('message', message => console.log("WebSocket message received:", message));
