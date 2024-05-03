@@ -21,20 +21,18 @@ const expressWsInstance = expressWs(app);
 app.set('view engine', 'ejs');
 
 // Load env variables
-let GPT_MODE = process.env.GPT_MODE || "CHAT"; // Default to "CHAT" if not provided
-let HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH) || 5; // Convert to integer, default to 5 if not provided
-let OPENAI_API_KEY = process.env.OPENAI_API_KEY || ""; // Default to empty string if not provided
-let MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo"; // Default to "gpt-3.5-turbo" if not provided
-let TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot"; // Default to "oSetinhasBot" if not provided
-let TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2"; // Default to provided value or empty string
-let COMMAND_NAME = process.env.COMMAND_NAME ? process.env.COMMAND_NAME.split(",") : ["!gpt"]; // Convert to array, default to ["!gpt"] if not provided
-let CHANNELS = process.env.CHANNELS ? process.env.CHANNELS.split(",") : ["oSetinhas", "jones88"]; // Convert to array, default channels if not provided
-let SEND_USERNAME = process.env.SEND_USERNAME || "true"; // Default to "true" if not provided
-let ENABLE_TTS = process.env.ENABLE_TTS || "false"; // Default to "false" if not provided
-let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS || "false"; // Default to "false" if not provided
-
-// Define BOT_PROMPT variable
-let BOT_PROMPT = "Korsan gibi davran, dini ve politik konulara girme, saygılı ol.";
+let GPT_MODE = process.env.GPT_MODE // CHAT or PROMPT
+let HISTORY_LENGTH = process.env.HISTORY_LENGTH // number of messages to keep in history
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY // openai api key
+let MODEL_NAME = process.env.MODEL_NAME // openai model name (e.g. gpt-3, gpt-3.5-turbo, gpt-4)
+let TWITCH_USER = process.env.TWITCH_USER // twitch bot username
+let TWITCH_AUTH =  process.env.TWITCH_AUTH // tmi auth token
+let COMMAND_NAME = process.env.COMMAND_NAME // comma separated list of commands to trigger bot (e.g. !gpt, !chat)
+let CHANNELS = process.env.CHANNELS // comma separated list of channels to join
+let SEND_USERNAME = process.env.SEND_USERNAME // send username in message to openai
+let ENABLE_TTS = process.env.ENABLE_TTS // enable text to speech
+let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS // enable channel points
+let BOT_PROMPT = process.env.BOT_PROMPT; //"Korsan gibi davran, dini ve politik konulara girme, saygılı ol."
 
 
 if (!GPT_MODE) {
