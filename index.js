@@ -95,7 +95,6 @@ console.log("Channels: " + channels)
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, channels, OPENAI_API_KEY, ENABLE_TTS);
 
 // setup openai operations
-const BOT_PROMPT = "Korsan gibi davran, dini ve politik konulara girme, saygılı ol.";
 const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
 
 // setup twitch bot callbacks
