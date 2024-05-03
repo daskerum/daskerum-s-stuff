@@ -35,17 +35,6 @@ let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS // enable channel 
 let BOT_PROMPT = process.env.BOT_PROMPT; //"Korsan gibi davran, dini ve politik konulara girme, saygılı ol."
 let RANDOM_INT = parseInt(process.env.RANDOM_INT); // 0-100 arası rastgelelik oranı
 
-// Rastgele etkileşim fonksiyonu
-function randomInteraction(randomInt) {
-    const randomChance = Math.floor(Math.random() * 100); // 0-99 arası rastgele sayı
-    if (randomChance < randomInt) {
-        console.log("Rastgele etkileşim yapıldı!");
-        // Etkileşim yapılacak işlemleri burada gerçekleştirin
-    } else {
-        console.log("Rastgele etkileşim yapılmadı.");
-    }
-}
-
 if (!GPT_MODE) {
     GPT_MODE = "CHAT"
 }
@@ -104,7 +93,7 @@ console.log("Channels: " + channels)
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, channels, OPENAI_API_KEY, ENABLE_TTS);
 
 // setup openai operations
-const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
+const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
 
 // setup twitch bot callbacks
 bot.onConnected((addr, port) => {
