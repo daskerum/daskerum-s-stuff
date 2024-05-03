@@ -92,7 +92,7 @@ const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, channels, OPENAI_API_KEY, EN
 
 // setup openai operations
 file_context = fs.readFileSync("./file_context.txt", 'utf8');
-const openai_ops = new OpenAIOperations(OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, file_context);
+const openai_ops = new OpenAIOperations(file_context, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH);
 
 // setup twitch bot callbacks
 bot.onConnected((addr, port) => {
