@@ -33,36 +33,42 @@ randomInteraction() {
     }
 }
 
-    async make_openai_call(text) {
-        try {
-            const prompt = `${this.messages[0].content}\n\nUser: ${text}\nAssistant:`;
-            this.messages.push({role: "user", content: text});
-            this.check_history_length();
+   async make_openai_call(text) {
+    try {
+        // Build the prompt with more context about the conversation
+        const fullPrompt = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}\nUser: ${text}\nAssistant:`;
+        this.messages.push({role: "user", content: text});
+        this.check_history_length();
 
-            const response = await this.openai.chat.completions.create({
-                model: this.model_name,
-                messages: this.messages,
-                temperature: 1,
-                max_tokens: 256,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-                stop: ["\n"]
-            });
+        const response = await this.openai.chat.completions.create({
+            model: this.model_name,
+            messages: this.messages,
+            temperature: 0.7,
+            max_tokens: 150,
+            top_p: 1,
+            frequency_penalty: 0.5,
+            presence_penalty: 0.6,
+            prompt: fullPrompt,  // ensure to use 'prompt' if your settings require it
+        });
 
-            if (response.choices) {
-                let agent_response = response.choices[0].message.content;
-                console.log(`Agent Response: ${agent_response}`);
-                this.messages.push({role: "assistant", content: agent_response});
-                return agent_response;
-            } else {
-                throw new Error("No choices returned from OpenAI");
-            }
-        } catch (error) {
-            console.error(error);
-            return "Sorry, something went wrong. Please try again later.";
+        if (response.choices) {
+            let agent_response = response.choices[0].message.content;
+            console.log(`Agent Response: ${agent_response}`);
+            this.messages.push({role: "assistant", content: agent_response});
+            return agent_response;
+        } else {
+            throw new Error("No choices returned from OpenAI");
         }
+    } catch (error) {
+        console.error(error);
+        return "Sorry, something went wrong. Please try again later.";
     }
+}
+
+getRecentMessages() {
+    // This function returns the last few messages to give context to the AI
+    return this.messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n');
+}
 
     async make_openai_call_completion(text) {
         try {
