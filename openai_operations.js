@@ -66,7 +66,7 @@ export class OpenAIOperations {
     }
 }
 
-    async make_openai_call_completion(text) {
+  async make_openai_call_completion(text) {
     try {
         // BOT_PROMPT'u kullanarak kullanıcı metnini formatlayın ve AI'ya gönderin
         const formattedText = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
