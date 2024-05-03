@@ -20,19 +20,18 @@ export class OpenAIOperations {
         }
     }
 
-    randomInteraction() {
-        const randomChance = Math.floor(Math.random() * 100); 
-        if (randomChance < this.RANDOM_INT) {
-            console.log("Random interaction occurred!");
-            const randomResponseIndex = 1 + Math.floor(Math.random() * (this.messages.length - 1));
-            const randomResponse = this.messages[randomResponseIndex].content;
-            console.log(randomResponse);
-            return randomResponse;
-        } else {
-            console.log("No random interaction.");
-            return null;
-        }
+   // openai_operations.js
+
+randomInteraction() {
+    const randomChance = Math.floor(Math.random() * 100);
+    if (randomChance < this.RANDOM_INT) {
+        console.log("Random interaction triggered");
+        return this.make_openai_call("Random interaction request.");
+    } else {
+        console.log("No random interaction.");
+        return null;
     }
+}
 
     async make_openai_call(text) {
         try {
