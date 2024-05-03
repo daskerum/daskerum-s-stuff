@@ -21,23 +21,25 @@ export class OpenAIOperations {
     }
 
     async make_openai_call(text) {
-        try {
-            //Add user message to  messages
-            this.messages.push({role: "user", content: text});
+     // Persona bilgilerini çevre değişkenlerinden al
+     const personaDescription = process.env.PERSONA_DESCRIPTION;
+     const personaStyle = process.env.PERSONA_STYLE;
+     const personaInstructions = process.env.PERSONA_INSTRUCTIONS;
 
-            //Check if message history is exceeded
-            this.check_history_length();
+     // Prompt'u persona bilgileriyle oluştur
+     const prompt = `${personaDescription} ${personaStyle} ${personaInstructions} ${text}`;
 
-            // Use await to get the response from openai
-            const response = await this.openai.chat.completions.create({
-                model: this.model_name,
-                messages: this.messages,
-                temperature: 1,
-                max_tokens: 256,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-            });
+     try {
+         const response = await this.openai.chat.completions.create({
+             model: this.model_name,
+             messages: this.messages,
+             prompt: prompt,
+             temperature: 1,
+             max_tokens: 256,
+             top_p: 1,
+             frequency_penalty: 0,
+             presence_penalty: 0,
+         });
 
             // Check if response has choices
             if (response.choices) {
