@@ -2,8 +2,8 @@
 import OpenAI from "openai";
 
 export class OpenAIOperations {
-    constructor(file_context, openai_key, model_name, history_length) {
-        this.messages = [{role: "system", content: file_context}];
+    constructor(BOT_PROMPT, openai_key, model_name, history_length) {
+        this.messages = [{role: "system", content: BOT_PROMPT}];
         this.openai = new OpenAI({
             apiKey: openai_key,
         });
