@@ -1,3 +1,4 @@
+// openai_operations.js
 import OpenAI from "openai";
 
 export class OpenAIOperations {
@@ -15,7 +16,7 @@ export class OpenAIOperations {
         console.log(`Conversations in History: ${((this.messages.length / 2) -1)}/${this.history_length}`);
         if(this.messages.length > ((this.history_length * 2) + 1)) {
             console.log('Message amount in history exceeded. Removing oldest user and assistant messages.');
-            this.messages.splice(1, 2);
+            this.messages.splice(1,2);
         }
     }
 
@@ -23,7 +24,7 @@ export class OpenAIOperations {
         const randomChance = Math.floor(Math.random() * 100); 
         if (randomChance < this.RANDOM_INT) {
             console.log("Random interaction occurred!");
-            const randomResponseIndex = Math.floor(Math.random() * this.messages.length);
+            const randomResponseIndex = 1 + Math.floor(Math.random() * (this.messages.length - 1));
             const randomResponse = this.messages[randomResponseIndex].content;
             console.log(randomResponse);
             return randomResponse;
@@ -35,8 +36,8 @@ export class OpenAIOperations {
 
     async make_openai_call(text) {
         try {
-            const formattedText = `User: ${text}\n---\n${this.messages[0].content}`;
-            this.messages.push({role: "user", content: formattedText});
+            const prompt = `${this.messages[0].content}\n\nUser: ${text}\nAssistant:`;
+            this.messages.push({role: "user", content: text});
             this.check_history_length();
 
             const response = await this.openai.chat.completions.create({
@@ -47,6 +48,7 @@ export class OpenAIOperations {
                 top_p: 1,
                 frequency_penalty: 0,
                 presence_penalty: 0,
+                stop: ["\n"]
             });
 
             if (response.choices) {
@@ -62,6 +64,7 @@ export class OpenAIOperations {
             return "Sorry, something went wrong. Please try again later.";
         }
     }
+}
 
     async make_openai_call_completion(text) {
         try {
