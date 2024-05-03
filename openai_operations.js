@@ -20,24 +20,48 @@ export class OpenAIOperations {
         }
     }
 
+  // Import modules
+import OpenAI from "openai";
+
+export class OpenAIOperations {
+    constructor(file_context, openai_key, model_name, history_length) {
+        this.messages = [{role: "system", content: file_context}];
+        this.openai = new OpenAI({
+            apiKey: openai_key,
+        });
+        this.model_name = model_name;
+        this.history_length = history_length;
+    }
+
+    check_history_length() {
+        // Use template literals to concatenate strings
+        console.log(`Conversations in History: ${((this.messages.length / 2) -1)}/${this.history_length}`);
+        if(this.messages.length > ((this.history_length * 2) + 1)) {
+            console.log('Message amount in history exceeded. Removing oldest user and agent messages.');
+            this.messages.splice(1,2);
+        }
+    }
+
     async make_openai_call(text) {
-        try {
-            //Add user message to  messages
-            this.messages.push({role: "user", content: text});
+     // Persona bilgilerini çevre değişkenlerinden al
+     const personaDescription = process.env.PERSONA_DESCRIPTION;
+     const personaStyle = process.env.PERSONA_STYLE;
+     const personaInstructions = process.env.PERSONA_INSTRUCTIONS;
 
-            //Check if message history is exceeded
-            this.check_history_length();
+     // Prompt'u persona bilgileriyle oluştur
+     const prompt = `${personaDescription} ${personaStyle} ${personaInstructions} ${text}`;
 
-            // Use await to get the response from openai
-            const response = await this.openai.chat.completions.create({
-                model: this.model_name,
-                messages: this.messages,
-                temperature: 1,
-                max_tokens: 256,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-            });
+     try {
+         const response = await this.openai.chat.completions.create({
+             model: this.model_name,
+             messages: this.messages,
+             prompt: prompt,
+             temperature: 1,
+             max_tokens: 256,
+             top_p: 1,
+             frequency_penalty: 0,
+             presence_penalty: 0,
+         });
 
             // Check if response has choices
             if (response.choices) {
