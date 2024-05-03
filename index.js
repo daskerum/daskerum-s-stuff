@@ -42,16 +42,16 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
-// index.js
-
 bot.onMessage(async (channel, user, message, self) => {
     if (self) return; // Ignore messages from the bot itself
 
-    // Check for random interaction first
-    const randomResponse = await openai_ops.randomInteraction();
-    if (randomResponse) {
-        bot.say(channel, randomResponse);
-        return; // Stop further processing to prevent command handling
+    // Handle random interactions that are not commands
+    if (!message.startsWith('!')) {
+        const randomResponse = await openai_ops.randomInteraction();
+        if (randomResponse) {
+            bot.say(channel, randomResponse);
+            return; // Stop further processing to prevent command handling
+        }
     }
 
     // Handle commands
