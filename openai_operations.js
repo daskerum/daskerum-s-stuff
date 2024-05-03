@@ -1,31 +1,39 @@
 import OpenAI from "openai";
 
 export class OpenAIOperations {
-    constructor(BOT_PROMPT, openai_key, model_name, history_length) {
+    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT) {
         this.messages = [{role: "system", content: BOT_PROMPT}];
         this.openai = new OpenAI({
             apiKey: openai_key,
         });
         this.model_name = model_name;
         this.history_length = history_length;
+        this.RANDOM_INT = RANDOM_INT;
     }
 
     check_history_length() {
         console.log(`Conversations in History: ${((this.messages.length / 2) -1)}/${this.history_length}`);
         if(this.messages.length > ((this.history_length * 2) + 1)) {
-            console.log('Message amount in history exceeded. Removing oldest user and agent messages.');
+            console.log('Message amount in history exceeded. Removing oldest user and assistant messages.');
             this.messages.splice(1,2);
         }
     }
 
     // Rastgele etkileşim fonksiyonu
-    randomInteraction(randomInt) {
+    randomInteraction() {
         const randomChance = Math.floor(Math.random() * 100); // 0-99 arası rastgele sayı
-        if (randomChance < randomInt) {
+        if (randomChance < this.RANDOM_INT) {
             console.log("Rastgele etkileşim yapıldı!");
-            // Etkileşim yapılacak işlemleri burada gerçekleştirin
+
+            // BOT_PROMPT komutunun verisine göre rastgele bir cevap oluşturun
+            const randomResponseIndex = Math.floor(Math.random() * this.messages.length);
+            const randomResponse = this.messages[randomResponseIndex].content;
+
+            console.log(randomResponse);
+            return randomResponse;
         } else {
             console.log("Rastgele etkileşim yapılmadı.");
+            return null;
         }
     }
 
