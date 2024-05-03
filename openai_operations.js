@@ -33,28 +33,31 @@ randomInteraction() {
 }
 
    // Modify the make_openai_call method
+// openai_operations.js
+
 async make_openai_call(text) {
     const currentTime = Date.now();
     if (currentTime - this.lastCalled < this.cooldownPeriod) {
         console.log("Cooldown in effect. Try again later.");
-        return null;  // Ensure no message is sent during cooldown
+        return null;  // Prevent output during cooldown
     }
     this.lastCalled = currentTime;  // Update last called time
 
     try {
-        // Ensure the BOT_PROMPT is effectively combined with the user input
-        const fullPrompt = `${this.messages[0].content}\n${text}`;
+        // Use BOT_PROMPT to influence the conversation style and tone, not as part of the direct input
+        const conversationContext = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}`;
         this.messages.push({role: "user", content: text});
         this.check_history_length();
 
         const response = await this.openai.chat.completions.create({
             model: this.model_name,
             messages: this.messages,
-            temperature: 0.7,
-            max_tokens: 100,
+            temperature: 0.9,
+            max_tokens: 150,
             top_p: 1,
-            frequency_penalty: 0.5,
-            presence_penalty: 0.6
+            frequency_penalty: 0,
+            presence_penalty: 0.6,
+            stop: ["\n", " User:", " Assistant:"]
         });
 
         if (response.choices && response.choices.length > 0) {
@@ -70,6 +73,7 @@ async make_openai_call(text) {
         return "Sorry, something went wrong. Please try again later.";
     }
 }
+
 
     getRecentMessages() {
         // This function returns the last few messages to give context to the AI
