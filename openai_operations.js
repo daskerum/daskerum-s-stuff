@@ -27,9 +27,8 @@ export class OpenAIOperations {
     // Yeni mesajı kullanıcının mesajı olarak ekle
     this.messages.push({role: "user", content: text});
 
-//Check if message history is exceeded
-            this.check_history_length();
-
+    // Check if message history is exceeded
+    this.check_history_length();
 
     // Chat completions için gerekli parametreleri ayarla
     try {
