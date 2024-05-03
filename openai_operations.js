@@ -8,7 +8,7 @@ export class OpenAIOperations {
         });
         this.model_name = model_name;
         this.history_length = history_length;
-        this.filePath = file_context;
+        this.filePath = filePath;
         this.basePrompt = "";  // Initialize with an empty string
         this.messages = []; // Initialize an empty array to store messages
         this.loadPrompt();  // Asynchronously load the prompt at startup
