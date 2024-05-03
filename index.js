@@ -43,32 +43,30 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
 bot.onMessage(async (channel, user, message, self) => {
-    if (self) return; // Ignore messages from the bot itself to prevent response loops.
+    if (self) return; // Ignore messages from the bot itself
 
-    // Check if the message is a command or needs a random interaction
+    // Handle random interactions that are not commands
     if (!message.startsWith('!')) {
-        // Handle random interactions with context from BOT_PROMPT
-        const randomResponse = await openai_ops.randomInteraction();  // Assuming randomInteraction handles BOT_PROMPT
+        const randomResponse = await openai_ops.randomInteraction();
         if (randomResponse) {
             bot.say(channel, randomResponse);
-            return; // Stop further processing
+            return; // Stop further processing to prevent command handling
         }
-    } else {
-        // Process commands, ensuring they're influenced by BOT_PROMPT
-        let commandText = message.slice(1).trim(); // Remove the command prefix
-        if (SEND_USERNAME) commandText = `Message from user ${user.username}: ${commandText}`;
-        
-        // Include BOT_PROMPT to frame the AI's response
-        const fullPrompt = `${BOT_PROMPT}\n${commandText}`;
-        const response = await openai_ops.make_openai_call(fullPrompt);
-        if (response) {
+    }
+
+    // Handle commands
+    if (message.toLowerCase().startsWith(COMMAND_NAME[0])) {
+        let text = message.slice(COMMAND_NAME[0].length).trim();
+        if (SEND_USERNAME) text = `Message from user ${user.username}: ${text}`;
+
+        const response = await openai_ops.make_openai_call(text);
+        if (response) {  // Check if a valid response was returned
             response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
                 setTimeout(() => bot.say(channel, msg), 1000 * index);
             });
         }
 
-        // Handle text-to-speech if enabled
-        if (ENABLE_TTS && response) {
+        if (ENABLE_TTS && response) {  // Ensure TTS only triggers if there's a valid response
             try {
                 const ttsAudioUrl = await bot.sayTTS(channel, response, user.userstate);
                 notifyFileChange(ttsAudioUrl);
@@ -78,7 +76,6 @@ bot.onMessage(async (channel, user, message, self) => {
         }
     }
 });
-
 
 
 app.ws('/check-for-updates', (ws, req) => {
