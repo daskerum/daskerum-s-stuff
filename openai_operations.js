@@ -20,12 +20,13 @@ export class OpenAIOperations {
         }
     }
 
-    async randomInteraction(text) {
+    async randomInteraction(text, user) {
         const randomChance = Math.floor(Math.random() * 100);
-        if (randomChance < this.RANDOM_INT) {
-            return await this.make_openai_call(text);
+        if (randomChance < this.RANDOM_INT && user.username !== TWITCH_USER) {
+            const prompt = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
+            return await this.make_openai_call(prompt);
         } else {
-            console.log("No random interaction.");
+            console.log("No random interaction or bot is trying to reply to itself.");
             return null;
         }
     }
@@ -39,7 +40,6 @@ export class OpenAIOperations {
         this.lastCalled = currentTime;
 
         try {
-            // Use BOT_PROMPT to influence the conversation style and tone, not as part of the direct input
             const conversationContext = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}`;
             this.messages.push({role: "user", content: text});
             this.check_history_length();
@@ -71,6 +71,6 @@ export class OpenAIOperations {
 
     getRecentMessages() {
         // This function returns the last few messages to give context to the AI
-        return this.messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n');
+        return this.messages.slice(-7).map(msg => `${msg.role}: ${msg.content}`).join('\n');
     }
 }
