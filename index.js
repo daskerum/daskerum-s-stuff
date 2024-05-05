@@ -48,7 +48,7 @@ bot.onMessage(async (channel, user, message, self) => {
         const randomResponse = await openai_ops.randomInteraction(message, user);
         if (randomResponse) {
             // Handle random response
-            randomResponse.match(new Regexp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+            randomResponse.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
                 setTimeout(() => bot.say(channel, msg), 1000 * index);
             });
             return; // Stop further processing to prevent command handling
@@ -77,24 +77,24 @@ bot.onMessage(async (channel, user, message, self) => {
                     console.error('TTS error:', error);
                 }
             }
-            break; // Stop processing after a command match
+
+            return;
         }
     }
 });
 
-// Endpoint to update environment variables dynamically
-app.post('/update-variables', (req, res) => {
-    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, twitchAuth, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt } = req.body;
+// Setup dynamic variable management
+app.post('/update-vars', (req, res) => {
+    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt } = req.body;
 
     GPT_MODE = gptMode || GPT_MODE;
     HISTORY_LENGTH = parseInt(historyLength) || HISTORY_LENGTH;
     OPENAI_API_KEY = openaiApiKey || OPENAI_API_KEY;
     MODEL_NAME = modelName || MODEL_NAME;
     TWITCH_USER = twitchUser || TWITCH_USER;
-    TWITCH_AUTH = twitchAuth || TWITCH_AUTH;
     COMMAND_NAME = (commandName || COMMAND_NAME).split(",").map(x => x.trim().toLowerCase());
     CHANNELS = (channels || CHANNELS).split(",").map(x => x.trim());
-    SEND_USERNAME = sendUsername !== undefined ? sendUsername !== "false" : SEND_USERNAME;
+    SEND_USERNAME = sendUsername !== undefined ? sendUsername === "true" : SEND_USERNAME;
     ENABLE_TTS = enableTts !== undefined ? enableTts === "true" : ENABLE_TTS;
     ENABLE_CHANNEL_POINTS = enableChannelPoints !== undefined ? enableChannelPoints === "true" : ENABLE_CHANNEL_POINTS;
     BOT_PROMPT = botPrompt || BOT_PROMPT;
