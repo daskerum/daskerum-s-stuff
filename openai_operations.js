@@ -1,10 +1,31 @@
-// openai_operations.js
 import OpenAI from "openai";
+
+class ChatGPTAPI {
+    constructor(api_key) {
+        openai.api_key = api_key;
+    }
+
+    generate_response(prompt, model="gpt-3.5-turbo", max_tokens=50, temperature=1.0) {
+        const response = openai.Completion.create({
+            model: model,
+            prompt: prompt,
+            max_tokens: max_tokens,
+            temperature: temperature,
+        });
+        return response.choices[0].text.strip();
+    }
+}
+
+function execute(chatGPT3APIkey, behavior, ChatMessage) {
+    const api = new ChatGPTAPI(chatGPT3APIkey);
+    const response = api.generate_response(behavior + ChatMessage);
+    return response;
+}
 
 export class OpenAIOperations {
     constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT) {
         this.messages = [{role: "system", content: BOT_PROMPT}];
-        this.openai = new OpenAI({ apiKey: openai_key });
+        this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
         this.RANDOM_INT = RANDOM_INT;
@@ -20,104 +41,42 @@ export class OpenAIOperations {
         }
     }
 
-// Modify the randomInteraction method
-randomInteraction() {
-    const randomChance = Math.floor(Math.random() * 100);
-    if (randomChance < this.RANDOM_INT) {
-        const message = "Let's discuss something interesting based on our theme: " + this.messages[0].content; // Use BOT_PROMPT to influence the interaction
-        return this.make_openai_call(message);
-    } else {
-        console.log("No random interaction.");
-        return null;
-    }
-}
-
-
-   // Modify the make_openai_call method
-// openai_operations.js
-
-async make_openai_call(text) {
-    const currentTime = Date.now();
-    if (currentTime - this.lastCalled < this.cooldownPeriod) {
-        console.log("Cooldown in effect. Try again later.");
-        return null;  // Prevent output during cooldown
-    }
-    this.lastCalled = currentTime;  // Update last called time
-
-    try {
-        // Use BOT_PROMPT to influence the conversation style and tone, not as part of the direct input
-        const conversationContext = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}`;
-        this.messages.push({role: "user", content: text});
-        this.check_history_length();
-
-        const response = await this.openai.chat.completions.create({
-            model: this.model_name,
-            messages: this.messages,
-            temperature: 0.9,
-            max_tokens: 150,
-            top_p: 1,
-            frequency_penalty: 0,
-            presence_penalty: 0.6,
-            stop: ["\n", " User:", " Assistant:"]
-        });
-
-        if (response.choices && response.choices.length > 0) {
-            let agent_response = response.choices[0].message.content;
-            this.messages.push({role: "assistant", content: agent_response});
-            console.log(`Agent Response: ${agent_response}`);
-            return agent_response;
+    randomInteraction() {
+        const randomChance = Math.floor(Math.random() * 100);
+        if (randomChance < this.RANDOM_INT) {
+            const message = "Let's discuss something interesting based on our theme: " + this.messages[0].content;  // Use BOT_PROMPT to influence the interaction
+            return this.make_openai_call(message);
         } else {
-            throw new Error("No choices returned from OpenAI");
+            console.log("No random interaction.");
+            return null;
         }
-    } catch (error) {
-        console.error("Error in make_openai_call:", error);
-        return "Sorry, something went wrong. Please try again later.";
     }
-}
 
+    async make_openai_call(text) {
+        const currentTime = Date.now();
+        if (currentTime - this.lastCalled < this.cooldownPeriod) {
+            console.log("Cooldown in effect. Try again later.");
+            return null;  // Prevent output during cooldown
+        }
+        this.lastCalled = currentTime;
+
+        try {
+            // Use BOT_PROMPT to influence the conversation style and tone, not as part of the direct input
+            const behavior = this.messages[0].content; // Use BOT_PROMPT as behavior
+            const response = execute(this.api_key, behavior, text);
+            this.messages.push({role: "user", content: text});
+            this.check_history_length();
+            this.messages.push({role: "assistant", content: response});
+            console.log(`Agent Response: ${response}`);
+            return response;
+        } catch (error) {
+            console.error("Error in make_openai_call:", error);
+            return "Sorry, something went wrong. Please try again later.";
+        }
+    }
 
     getRecentMessages() {
         // This function returns the last few messages to give context to the AI
         return this.messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n');
     }
-
-    async make_openai_call(text) {
-    const currentTime = Date.now();
-    if (currentTime - this.lastCalled < this.cooldownPeriod) {
-        console.log("Cooldown in effect. Try again later.");
-        return null;  // Prevent output during cooldown
-    }
-    this.lastCalled = currentTime;  // Update last called time
-
-    try {
-        // Use BOT_PROMPT to influence the conversation style and tone, not as part of the direct input
-        const conversationContext = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}`;
-        this.messages.push({role: "user", content: text});
-        this.check_history_length();
-
-        const response = await this.openai.chat.completions.create({
-            model: this.model_name,
-            messages: this.messages,
-            temperature: 0.9,
-            max_tokens: 150,
-            top_p: 1,
-            frequency_penalty: 0,
-            presence_penalty: 0.6,
-            stop: ["\n", " User:", " Assistant:"]
-        });
-
-        if (response.choices && response.choices.length > 0) {
-            let agent_response = response.choices[0].message.content;
-            this.messages.push({role: "assistant", content: agent_response});
-            console.log(`Agent Response: ${agent_response}`);
-            return agent_response;
-        } else {
-            throw new Error("No choices returned from OpenAI");
-        }
-    } catch (error) {
-        console.error("Error in make_openai_call:", error);
-        return "Sorry, something went wrong. Please try again later.";
-    }
-}
-
 }
