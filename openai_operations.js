@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-export default class OpenAIOperations {
+class OpenAIOperations {
     constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT, twitchUser) {
         this.messages = [{ role: "system", content: BOT_PROMPT }];
         this.api_key = openai_key;
@@ -115,3 +115,5 @@ export default class OpenAIOperations {
         }
     }
 }
+
+export default OpenAIOperations;
