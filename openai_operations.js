@@ -1,13 +1,14 @@
 import OpenAI from "openai";
 
 class OpenAIOperations {
-    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT, twitchUser) {
+    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT, twitchUser, link) {
         this.messages = [{ role: "system", content: BOT_PROMPT }];
         this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
         this.RANDOM_INT = RANDOM_INT;
         this.twitchUser = twitchUser;
+        this.link = link;
         this.lastCalled = Date.now();
         this.cooldownPeriod = 10000; // 10 seconds
         this.openai = new OpenAI({ apiKey: openai_key });
@@ -80,8 +81,35 @@ class OpenAIOperations {
         }
     }
 
-    async createTimedMessage(text) {
-        return await this.make_openai_call(text, text);
+    async make_timed_message(prompt) {
+        try {
+            this.messages.push({ role: "user", content: prompt });
+            this.check_history_length();
+
+            const response = await this.openai.chat.completions.create({
+                model: this.model_name,
+                messages: this.messages,
+                temperature: 0.9,
+                max_tokens: 150,
+                top_p: 1,
+                frequency_penalty: 0,
+                presence_penalty: 0.6,
+                stop: ["\n", " User:", " Assistant:"]
+            });
+
+            if (response.choices && response.choices.length > 0) {
+                let agent_response = response.choices[0].message.content;
+                agent_response += ` ${this.link}`;  // Append the link
+                this.messages.push({ role: "assistant", content: agent_response });
+                console.log(`Agent Response: ${agent_response}`);
+                return agent_response;
+            } else {
+                throw new Error("No choices returned from OpenAI");
+            }
+        } catch (error) {
+            console.error("Error in make_timed_message:", error);
+            return "Sorry, something went wrong. Please try again later.";
+        }
     }
 
     getRecentMessages() {
