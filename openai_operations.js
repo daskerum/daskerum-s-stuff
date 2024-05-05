@@ -24,13 +24,14 @@ export class OpenAIOperations {
 randomInteraction() {
     const randomChance = Math.floor(Math.random() * 100);
     if (randomChance < this.RANDOM_INT) {
-        const message = "Let's discuss something interesting based on our theme: " + this.messages[0].content;  // Use BOT_PROMPT to influence the interaction
+        const message = "Let's discuss something interesting based on our theme: " + this.messages[0].content; // Use BOT_PROMPT to influence the interaction
         return this.make_openai_call(message);
     } else {
         console.log("No random interaction.");
         return null;
     }
 }
+
 
    // Modify the make_openai_call method
 // openai_operations.js
@@ -80,33 +81,43 @@ async make_openai_call(text) {
         return this.messages.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n');
     }
 
-    async make_openai_call_completion(text) {
-        try {
-            const formattedText = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
-            this.messages.push({role: "user", content: formattedText});
-            this.check_history_length();
-
-            const response = await this.openai.completions.create({
-                model: "text-davinci-003",
-                prompt: formattedText,
-                temperature: 1,
-                max_tokens: 256,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-            });
-
-            if (response.choices) {
-                let agent_response = response.choices[0].text;
-                console.log(`Agent Response: ${agent_response}`);
-                this.messages.push({role: "assistant", content: agent_response});
-                return agent_response;
-            } else {
-                throw new Error("No choices returned from OpenAI");
-            }
-        } catch (error) {
-            console.error(error);
-            return "Sorry, something went wrong. Please try again later.";
-        }
+    async make_openai_call(text) {
+    const currentTime = Date.now();
+    if (currentTime - this.lastCalled < this.cooldownPeriod) {
+        console.log("Cooldown in effect. Try again later.");
+        return null;  // Prevent output during cooldown
     }
+    this.lastCalled = currentTime;  // Update last called time
+
+    try {
+        // Use BOT_PROMPT to influence the conversation style and tone, not as part of the direct input
+        const conversationContext = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}`;
+        this.messages.push({role: "user", content: text});
+        this.check_history_length();
+
+        const response = await this.openai.chat.completions.create({
+            model: this.model_name,
+            messages: this.messages,
+            temperature: 0.9,
+            max_tokens: 150,
+            top_p: 1,
+            frequency_penalty: 0,
+            presence_penalty: 0.6,
+            stop: ["\n", " User:", " Assistant:"]
+        });
+
+        if (response.choices && response.choices.length > 0) {
+            let agent_response = response.choices[0].message.content;
+            this.messages.push({role: "assistant", content: agent_response});
+            console.log(`Agent Response: ${agent_response}`);
+            return agent_response;
+        } else {
+            throw new Error("No choices returned from OpenAI");
+        }
+    } catch (error) {
+        console.error("Error in make_openai_call:", error);
+        return "Sorry, something went wrong. Please try again later.";
+    }
+}
+
 }
