@@ -25,7 +25,7 @@ app.set('view engine', 'ejs');
 app.use(express.json({ extended: true, limit: '1mb' }));
 app.use('/public', express.static('public'));
 
-let openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
+let openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, CHANNELS, OPENAI_API_KEY, ENABLE_TTS);
 
 job.start();
@@ -45,10 +45,10 @@ bot.onMessage(async (channel, user, message, self) => {
 
     // Handle random interactions that are not commands
     if (!message.startsWith('!') && !message.startsWith('/')) {
-        const randomResponse = await openai_ops.randomInteraction(message, user, TWITCH_USER);
+        const randomResponse = await openai_ops.randomInteraction(message, user);
         if (randomResponse) {
             // Handle random response
-            randomResponse.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+            randomResponse.match(new Regexp(`.{1,${399}}`, "g")).forEach((msg, index) => {
                 setTimeout(() => bot.say(channel, msg), 1000 * index);
             });
             return; // Stop further processing to prevent command handling
@@ -64,7 +64,7 @@ bot.onMessage(async (channel, user, message, self) => {
             const response = await openai_ops.make_openai_call(text, message);
             if (response) {
                 // Handle command response
-                response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+                response.match(new RegExp(`.{1,${399}}`, "g")). forEach((msg, index) => {
                     setTimeout(() => bot.say(channel, msg), 1000 * index);
                 });
             }
@@ -101,7 +101,7 @@ app.post('/update-variables', (req, res) => {
     RANDOM_INT = parseInt(randomInt) || RANDOM_INT;
 
     // Update openai_ops instance
-    openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
+    openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
 
     res.status(200).send("Variables updated successfully");
 });
