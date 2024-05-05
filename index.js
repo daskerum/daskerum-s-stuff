@@ -2,7 +2,7 @@ import express from 'express';
 import ws from 'ws';
 import expressWs from 'express-ws';
 import { job } from './keep_alive.js';
-import { OpenAIOperations } from './openai_operations.js';
+import OpenAIOperations from './openai_operations.js';
 import { TwitchBot } from './twitch_bot.js';
 
 let GPT_MODE = process.env.GPT_MODE || "CHAT";
@@ -11,7 +11,7 @@ let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 let MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
 let TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
 let TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
-let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
+let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt"). split(",").map(x => x.trim().toLowerCase());
 let CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
 let SEND_USERNAME = process.env.SEND_USERNAME !== "false";
 let ENABLE_TTS = process.env.ENABLE_TTS === "true";
@@ -64,7 +64,7 @@ bot.onMessage(async (channel, user, message, self) => {
             const response = await openai_ops.make_openai_call(text, message);
             if (response) {
                 // Handle command response
-                response.match(new Regexp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+                response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
                     setTimeout(() => bot.say(channel, msg), 1000 * index);
                 });
             }
