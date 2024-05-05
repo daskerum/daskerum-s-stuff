@@ -2,7 +2,7 @@ import OpenAI from "openai";
 
 export class OpenAIOperations {
     constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT) {
-        this.messages = [{role: "system", content: BOT_PROMPT}];
+        this.messages = [{ role: "system", content: BOT_PROMPT }];
         this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
@@ -20,18 +20,18 @@ export class OpenAIOperations {
         }
     }
 
-    async randomInteraction(text, user) {
+    async randomInteraction(text, user, twitchUser) {
         const randomChance = Math.floor(Math.random() * 100);
-        if (randomChance < this.RANDOM_INT && user.username !== TWITCH_USER) {
+        if (randomChance < this.RANDOM_INT && !text.startsWith("!") && !text.startsWith("/") && user.username !== twitchUser) {
             const prompt = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
-            return await this.make_openai_call(prompt);
+            return await this.make_openai_call(prompt, text);
         } else {
             console.log("No random interaction or bot is trying to reply to itself.");
             return null;
         }
     }
 
-    async make_openai_call(text) {
+    async make_openai_call(text, originalText) {
         const currentTime = Date.now();
         if (currentTime - this.lastCalled < this.cooldownPeriod) {
             console.log("Cooldown in effect. Try again later.");
@@ -40,8 +40,18 @@ export class OpenAIOperations {
         this.lastCalled = currentTime;
 
         try {
-            const conversationContext = `${this.messages[0].content}\nRecent Conversation:\n${this.getRecentMessages()}`;
-            this.messages.push({role: "user", content: text});
+            // Detect language from the original text
+            const langResponse = await this.openai.completions.create({
+                model: "text-davinci-003",
+                prompt: `Identify the language of the following text: ${originalText}`,
+                max_tokens: 10
+            });
+
+            const detectedLanguage = langResponse.choices[0].text.trim();
+
+            // Use persona and language in the conversation context
+            const conversationContext = `${this.messages[0].content} Respond in ${detectedLanguage}.\nRecent Conversation:\n${this.getRecentMessages()}`;
+            this.messages.push({ role: "user", content: text });
             this.check_history_length();
 
             const response = await this.openai.chat.completions.create({
@@ -57,7 +67,7 @@ export class OpenAIOperations {
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
-                this.messages.push({role: "assistant", content: agent_response});
+                this.messages.push({ role: "assistant", content: agent_response });
                 console.log(`Agent Response: ${agent_response}`);
                 return agent_response;
             } else {
