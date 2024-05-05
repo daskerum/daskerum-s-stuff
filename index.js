@@ -1,24 +1,23 @@
 import express from 'express';
-import fs from 'fs';
 import ws from 'ws';
 import expressWs from 'express-ws';
 import { job } from './keep_alive.js';
 import { OpenAIOperations } from './openai_operations.js';
 import { TwitchBot } from './twitch_bot.js';
 
-let GPT_MODE = process.env.GPT_MODE || "CHAT";
-let HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH || "7");
-let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-let MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
-let TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
-let TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
-let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
-let CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
-let SEND_USERNAME = process.env.SEND_USERNAME !== "false";
-let ENABLE_TTS = process.env.ENABLE_TTS === "true";
-let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
-let BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
-let RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
+const GPT_MODE = process.env.GPT_MODE || "CHAT";
+const HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH || "7");
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
+const TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
+const TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
+const COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
+const CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
+const SEND_USERNAME = process.env.SEND_USERNAME !== "false";
+const ENABLE_TTS = process.env.ENABLE_TTS === "true";
+const ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
+const BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
+const RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
 
 const app = express();
 const expressWsInstance = expressWs(app);
@@ -82,7 +81,6 @@ bot.onMessage(async (channel, user, message, self) => {
         }
     }
 });
-
 
 app.ws('/check-for-updates', (ws, req) => {
     ws.on('message', message => console.log("WebSocket message received:", message));
