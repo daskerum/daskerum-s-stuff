@@ -1,4 +1,3 @@
-// index.js
 import express from 'express';
 import fs from 'fs';
 import ws from 'ws';
@@ -18,7 +17,7 @@ let CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x =>
 let SEND_USERNAME = process.env.SEND_USERNAME !== "false";
 let ENABLE_TTS = process.env.ENABLE_TTS === "true";
 let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
-let BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
+let BOT_PROMPT = process.env.BOT_PROMPT || "Korsan gibi davran, dini ve politik konulara girme, saygılı ol.";
 let RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
 
 const app = express();
@@ -27,7 +26,7 @@ app.set('view engine', 'ejs');
 app.use(express.json({ extended: true, limit: '1mb' }));
 app.use('/public', express.static('public'));
 
-const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, "%BOT_PROMPT%");
+const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, CHANNELS, OPENAI_API_KEY, ENABLE_TTS);
 
 job.start();
@@ -43,13 +42,16 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
 bot.onMessage(async (channel, user, message, self) => {
-    if (self) return;
+    if (self) return; // Ignore messages from the bot itself
 
     // Handle random interactions that are not commands
     if (!message.startsWith('!')) {
         const randomResponse = await openai_ops.randomInteraction(message);
         if (randomResponse) {
-            bot.say(channel, randomResponse);
+            // Handle random response
+            randomResponse.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+                setTimeout(() => bot.say(channel, msg), 1000 * index);
+            });
             return; // Stop further processing to prevent command handling
         }
     }
@@ -62,6 +64,7 @@ bot.onMessage(async (channel, user, message, self) => {
 
             const response = await openai_ops.make_openai_call(text);
             if (response) {
+                // Handle command response
                 response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
                     setTimeout(() => bot.say(channel, msg), 1000 * index);
                 });
@@ -79,8 +82,6 @@ bot.onMessage(async (channel, user, message, self) => {
         }
     }
 });
-
-
 
 
 app.ws('/check-for-updates', (ws, req) => {
