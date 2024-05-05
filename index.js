@@ -1,6 +1,7 @@
 import express from 'express';
 import ws from 'ws';
 import expressWs from 'express-ws';
+import { CronJob, CronTime } from 'cron';
 import { job } from './keep_alive.js';
 import OpenAIOperations from './openai_operations.js';
 import { TwitchBot } from './twitch_bot.js';
@@ -18,8 +19,8 @@ let ENABLE_TTS = process.env.ENABLE_TTS === "true";
 let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
 let BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
 let RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
-let TIMED_MESSAGE = process.env.TIMED_MESSAGE || "Check out our latest content here: http://example.com";
-let TIMED_MESSAGE_TIME = parseInt(process.env.TIMED_MESSAGE_TIME || "5");
+let LINK = process.env.LINK || "http://default-link.com";
+let TIMED_MESSAGE_TIME = parseInt(process.env.TIMED_MESSAGE_TIME || "10");
 
 const app = express();
 const expressWsInstance = expressWs(app);
@@ -27,7 +28,7 @@ app.set('view engine', 'ejs');
 app.use(express.json({ extended: true, limit: '1mb' }));
 app.use('/public', express.static('public'));
 
-let openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
+let openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER, LINK);
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, CHANNELS, OPENAI_API_KEY, ENABLE_TTS);
 
 job.start();
@@ -35,13 +36,7 @@ console.log('Environment Variables:', process.env);
 
 bot.onConnected((addr, port) => {
     console.log(`* Connected to ${addr}:${port}`);
-    CHANNELS.forEach(channel => {
-        console.log(`* Joining ${channel}`);
-        setInterval(async () => {
-            const response = await openai_ops.createTimedMessage(TIMED_MESSAGE);
-            bot.say(channel, response);
-        }, TIMED_MESSAGE_TIME * 60000); // TIMED_MESSAGE_TIME in minutes
-    });
+    CHANNELS.forEach(channel => console.log(`* Joining ${channel}`));
 });
 
 bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
@@ -93,7 +88,7 @@ bot.onMessage(async (channel, user, message, self) => {
 
 // Setup dynamic variable management
 app.post('/update-vars', (req, res) => {
-    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt, timedMessage, timedMessageTime } = req.body;
+    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt, link, timedMessageTime } = req.body;
 
     GPT_MODE = gptMode || GPT_MODE;
     HISTORY_LENGTH = parseInt(historyLength) || HISTORY_LENGTH;
@@ -107,14 +102,36 @@ app.post('/update-vars', (req, res) => {
     ENABLE_CHANNEL_POINTS = enableChannelPoints !== undefined ? enableChannelPoints === "true" : ENABLE_CHANNEL_POINTS;
     BOT_PROMPT = botPrompt || BOT_PROMPT;
     RANDOM_INT = parseInt(randomInt) || RANDOM_INT;
-    TIMED_MESSAGE = timedMessage || TIMED_MESSAGE;
+    LINK = link || LINK;
     TIMED_MESSAGE_TIME = parseInt(timedMessageTime) || TIMED_MESSAGE_TIME;
 
     // Update openai_ops instance
-    openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
+    openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER, LINK);
+
+    // Restart timed message job with new interval
+    timedMessageJob.stop();
+    timedMessageJob.setTime(new CronTime(`*/${TIMED_MESSAGE_TIME} * * * *`));
+    timedMessageJob.start();
 
     res.status(200).send("Variables updated successfully");
 });
+
+const timedMessageJob = new CronJob(`*/${TIMED_MESSAGE_TIME} * * * *`, async function() {
+    for (const channel of CHANNELS) {
+        try {
+            const prompt = `${BOT_PROMPT} Add this link: ${LINK}`;
+            const response = await openai_ops.make_timed_message(prompt);
+            if (response) {
+                response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+                    setTimeout(() => bot.say(channel, msg), 1000 * index);
+                });
+            }
+        } catch (error) {
+            console.error("Error in timed message:", error);
+        }
+    }
+});
+timedMessageJob.start();
 
 app.ws('/check-for-updates', (ws, req) => {
     ws.on('message', message => console.log("WebSocket message received:", message));
