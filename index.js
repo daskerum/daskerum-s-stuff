@@ -5,19 +5,19 @@ import { job } from './keep_alive.js';
 import { OpenAIOperations } from './openai_operations.js';
 import { TwitchBot } from './twitch_bot.js';
 
-const GPT_MODE = process.env.GPT_MODE || "CHAT";
-const HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH || "7");
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
-const TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
-const TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
-const COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
-const CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
-const SEND_USERNAME = process.env.SEND_USERNAME !== "false";
-const ENABLE_TTS = process.env.ENABLE_TTS === "true";
-const ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
-const BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
-const RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
+let GPT_MODE = process.env.GPT_MODE || "CHAT";
+let HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH || "7");
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+let MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
+let TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
+let TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
+let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
+let CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
+let SEND_USERNAME = process.env.SEND_USERNAME !== "false";
+let ENABLE_TTS = process.env.ENABLE_TTS === "true";
+let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
+let BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
+let RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
 
 const app = express();
 const expressWsInstance = expressWs(app);
@@ -25,7 +25,7 @@ app.set('view engine', 'ejs');
 app.use(express.json({ extended: true, limit: '1mb' }));
 app.use('/public', express.static('public'));
 
-const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
+let openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, CHANNELS, OPENAI_API_KEY, ENABLE_TTS);
 
 job.start();
@@ -44,8 +44,8 @@ bot.onMessage(async (channel, user, message, self) => {
     if (self || user.username === TWITCH_USER) return; // Ignore messages from the bot itself or if the bot tries to reply to itself
 
     // Handle random interactions that are not commands
-    if (!message.startsWith('!')) {
-        const randomResponse = await openai_ops.randomInteraction(message, user);
+    if (!message.startsWith('!') && !message.startsWith('/')) {
+        const randomResponse = await openai_ops.randomInteraction(message, user, TWITCH_USER);
         if (randomResponse) {
             // Handle random response
             randomResponse.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
@@ -61,7 +61,7 @@ bot.onMessage(async (channel, user, message, self) => {
             let text = message.slice(cmd.length).trim();
             if (SEND_USERNAME) text = `Message from user ${user.username}: ${text}`;
 
-            const response = await openai_ops.make_openai_call(text);
+            const response = await openai_ops.make_openai_call(text, message);
             if (response) {
                 // Handle command response
                 response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
@@ -80,6 +80,30 @@ bot.onMessage(async (channel, user, message, self) => {
             break; // Stop processing after a command match
         }
     }
+});
+
+// Endpoint to update environment variables dynamically
+app.post('/update-variables', (req, res) => {
+    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, twitchAuth, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt } = req.body;
+
+    GPT_MODE = gptMode || GPT_MODE;
+    HISTORY_LENGTH = parseInt(historyLength) || HISTORY_LENGTH;
+    OPENAI_API_KEY = openaiApiKey || OPENAI_API_KEY;
+    MODEL_NAME = modelName || MODEL_NAME;
+    TWITCH_USER = twitchUser || TWITCH_USER;
+    TWITCH_AUTH = twitchAuth || TWITCH_AUTH;
+    COMMAND_NAME = (commandName || COMMAND_NAME).split(",").map(x => x.trim().toLowerCase());
+    CHANNELS = (channels || CHANNELS).split(",").map(x => x.trim());
+    SEND_USERNAME = sendUsername !== undefined ? sendUsername !== "false" : SEND_USERNAME;
+    ENABLE_TTS = enableTts !== undefined ? enableTts === "true" : ENABLE_TTS;
+    ENABLE_CHANNEL_POINTS = enableChannelPoints !== undefined ? enableChannelPoints === "true" : ENABLE_CHANNEL_POINTS;
+    BOT_PROMPT = botPrompt || BOT_PROMPT;
+    RANDOM_INT = parseInt(randomInt) || RANDOM_INT;
+
+    // Update openai_ops instance
+    openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
+
+    res.status(200).send("Variables updated successfully");
 });
 
 app.ws('/check-for-updates', (ws, req) => {
