@@ -111,7 +111,7 @@ class OpenAIOperations {
                 this.messages.push({ role: "assistant", content: agent_response });
                 return agent_response;
             } else {
-                throw an Error("No choices returned from OpenAI");
+                throw new Error("No choices returned from OpenAI");
             }
         } catch (error) {
             console.error("Error in make_openai_call_completion:", error);
