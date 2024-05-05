@@ -1,87 +1,122 @@
-import OpenAI from "openai";
+import express from 'express';
+import ws from 'ws';
+import expressWs from 'express-ws';
+import { job } from './keep_alive.js';
+import { OpenAIOperations } from './openai_operations.js';
+import { TwitchBot } from './twitch_bot.js';
 
-export class OpenAIOperations {
-    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT, twitchUser) {
-        this.messages = [{ role: "system", content: BOT_PROMPT }];
-        this.api_key = openai_key;
-        this.model_name = model_name;
-        this.history_length = history_length;
-        this.RANDOM_INT = RANDOM_INT;
-        this.twitchUser = twitchUser;
-        this.lastCalled = Date.now();
-        this.cooldownPeriod = 10000; // 10 seconds
-        this.openai = new OpenAI({ apiKey: openai_key });
-    }
+let GPT_MODE = process.env.GPT_MODE || "CHAT";
+let HISTORY_LENGTH = parseInt(process.env.HISTORY_LENGTH || "7");
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+let MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
+let TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
+let TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
+let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
+let CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
+let SEND_USERNAME = process.env.SEND_USERNAME !== "false";
+let ENABLE_TTS = process.env.ENABLE_TTS === "true";
+let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
+let BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
+let RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
 
-    check_history_length() {
-        console.log(`Conversations in History: ${((this.messages.length / 2) - 1)}/${this.history_length}`);
-        if (this.messages.length > ((this.history_length * 2) + 1)) {
-            console.log('Message amount in history exceeded. Removing oldest user and assistant messages.');
-            this.messages.splice(1, 2);
-        }
-    }
+const app = express();
+const expressWsInstance = expressWs(app);
+app.set('view engine', 'ejs');
+app.use(express.json({ extended: true, limit: '1mb' }));
+app.use('/public', express.static('public'));
 
-    async randomInteraction(text, user) {
-        const randomChance = Math.floor(Math.random() * 100);
-        if (randomChance < this.RANDOM_INT && !text.startsWith("!") && !text.startsWith("/") && user.username !== this.twitchUser) {
-            const prompt = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
-            return await this.make_openai_call(prompt, text);
-        } else {
-            console.log("No random interaction or bot is trying to reply to itself.");
-            return null;
-        }
-    }
+let openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
+const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, CHANNELS, OPENAI_API_KEY, ENABLE_TTS);
 
-    async make_openai_call(text, originalText) {
-        const currentTime = Date.now();
-        if (currentTime - this.lastCalled < this.cooldownPeriod) {
-            console.log("Cooldown in effect. Try again later.");
-            return null;  // Prevent output during cooldown
-        }
-        this.lastCalled = currentTime;
+job.start();
+console.log('Environment Variables:', process.env);
 
-        try {
-            // Detect language from the original text
-            const langResponse = await this.openai.completions.create({
-                model: "gpt-3.5-turbo",
-                prompt: `Identify the language of the following text: ${originalText}`,
-                max_tokens: 10
+bot.onConnected((addr, port) => {
+    console.log(`* Connected to ${addr}:${port}`);
+    CHANNELS.forEach(channel => console.log(`* Joining ${channel}`));
+});
+
+bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
+
+bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
+
+bot.onMessage(async (channel, user, message, self) => {
+    if (self || user.username === TWITCH_USER) return; // Ignore messages from the bot itself or if the bot tries to reply to itself
+
+    // Handle random interactions that are not commands
+    if (!message.startsWith('!') && !message.startsWith('/')) {
+        const randomResponse = await openai_ops.randomInteraction(message, user);
+        if (randomResponse) {
+            // Handle random response
+            randomResponse.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+                setTimeout(() => bot.say(channel, msg), 1000 * index);
             });
+            return; // Stop further processing to prevent command handling
+        }
+    }
 
-            const detectedLanguage = langResponse.choices[0].text.trim();
+    // Handle commands
+    for (const cmd of COMMAND_NAME) {
+        if (message.toLowerCase().startsWith(cmd)) {
+            let text = message.slice(cmd.length).trim();
+            if (SEND_USERNAME) text = `Message from user ${user.username}: ${text}`;
 
-            // Use persona and language in the conversation context
-            const conversationContext = `${this.messages[0].content} Respond in ${detectedLanguage}.\nRecent Conversation:\n${this.getRecentMessages()}`;
-            this.messages.push({ role: "user", content: text });
-            this.check_history_length();
-
-            const response = await this.openai.chat.completions.create({
-                model: this.model_name,
-                messages: this.messages,
-                temperature: 0.9,
-                max_tokens: 150,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0.6,
-                stop: ["\n", " User:", " Assistant:"]
-            });
-
-            if (response.choices && response.choices.length > 0) {
-                let agent_response = response.choices[0].message.content;
-                this.messages.push({ role: "assistant", content: agent_response });
-                console.log(`Agent Response: ${agent_response}`);
-                return agent_response;
-            } else {
-                throw new Error("No choices returned from OpenAI");
+            const response = await openai_ops.make_openai_call(text, message);
+            if (response) {
+                // Handle command response
+                response.match(new RegExp(`.{1,${399}}`, "g")). forEach((msg, index) => {
+                    setTimeout(() => bot.say(channel, msg), 1000 * index);
+                });
             }
-        } catch (error) {
-            console.error("Error in make_openai_call:", error);
-            return "Sorry, something went wrong. Please try again later.";
+
+            if (ENABLE_TTS && response) {
+                try {
+                    const ttsAudioUrl = await bot.sayTTS(channel, response, user.userstate);
+                    notifyFileChange(ttsAudioUrl);
+                } catch (error) {
+                    console.error('TTS error:', error);
+                }
+            }
+
+            return;
         }
     }
+});
 
-    getRecentMessages() {
-        // This function returns the last few messages to give context to the AI
-        return this.messages.slice(-7).map(msg => `${msg.role}: ${msg.content}`).join('\n');
-    }
+// Setup dynamic variable management
+app.post('/update-vars', (req, res) => {
+    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt } = req.body;
+
+    GPT_MODE = gptMode || GPT_MODE;
+    HISTORY_LENGTH = parseInt(historyLength) || HISTORY_LENGTH;
+    OPENAI_API_KEY = openaiApiKey || OPENAI_API_KEY;
+    MODEL_NAME = modelName || MODEL_NAME;
+    TWITCH_USER = twitchUser || TWITCH_USER;
+    COMMAND_NAME = (commandName || COMMAND_NAME).split(",").map(x => x.trim().toLowerCase());
+    CHANNELS = (channels || CHANNELS).split(",").map(x => x.trim());
+    SEND_USERNAME = sendUsername !== undefined ? sendUsername === "true" : SEND_USERNAME;
+    ENABLE_TTS = enableTts !== undefined ? enableTts === "true" : ENABLE_TTS;
+    ENABLE_CHANNEL_POINTS = enableChannelPoints !== undefined ? enableChannelPoints === "true" : ENABLE_CHANNEL_POINTS;
+    BOT_PROMPT = botPrompt || BOT_PROMPT;
+    RANDOM_INT = parseInt(randomInt) || RANDOM_INT;
+
+    // Update openai_ops instance
+    openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
+
+    res.status(200).send("Variables updated successfully");
+});
+
+app.ws('/check-for-updates', (ws, req) => {
+    ws.on('message', message => console.log("WebSocket message received:", message));
+});
+
+app.all('/', (req, res) => res.render('pages/index'));
+
+const server = app.listen(3000, () => console.log('Server running on port 3000'));
+const wss = expressWsInstance.getWss();
+
+function notifyFileChange(url) {
+    wss.clients.forEach(client => {
+        if (client.readyState === ws.OPEN) client.send(JSON.stringify({ updated: true, url }));
+    });
 }
