@@ -13,18 +13,17 @@ export class OpenAIOperations {
     }
 
     check_history_length() {
-        console.log(`Conversations in History: ${((this.messages.length / 2) -1)}/${this.history_length}`);
+        console.log(`Conversations in History: ${((this.messages.length / 2) - 1)}/${this.history_length}`);
         if (this.messages.length > ((this.history_length * 2) + 1)) {
             console.log('Message amount in history exceeded. Removing oldest user and assistant messages.');
             this.messages.splice(1, 2);
         }
     }
 
-    randomInteraction() {
+    async randomInteraction(text) {
         const randomChance = Math.floor(Math.random() * 100);
         if (randomChance < this.RANDOM_INT) {
-            const message = "Let's discuss something interesting based on our theme: " + this.messages[0].content;  // Use BOT_PROMPT to influence the interaction
-            return this.make_openai_call(message);
+            return await this.make_openai_call(text);
         } else {
             console.log("No random interaction.");
             return null;
