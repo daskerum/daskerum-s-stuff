@@ -11,13 +11,15 @@ let OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 let MODEL_NAME = process.env.MODEL_NAME || "gpt-3.5-turbo";
 let TWITCH_USER = process.env.TWITCH_USER || "oSetinhasBot";
 let TWITCH_AUTH = process.env.TWITCH_AUTH || "oauth:vgvx55j6qzz1lkt3cwggxki1lv53c2";
-let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt"). split(",").map(x => x.trim().toLowerCase());
+let COMMAND_NAME = (process.env.COMMAND_NAME || "!gpt").split(",").map(x => x.trim().toLowerCase());
 let CHANNELS = (process.env.CHANNELS || "oSetinhas,jones88").split(",").map(x => x.trim());
 let SEND_USERNAME = process.env.SEND_USERNAME !== "false";
 let ENABLE_TTS = process.env.ENABLE_TTS === "true";
 let ENABLE_CHANNEL_POINTS = process.env.ENABLE_CHANNEL_POINTS === "true";
 let BOT_PROMPT = process.env.BOT_PROMPT || "Act like a pirate! Don't go into religion or politics.";
 let RANDOM_INT = parseInt(process.env.RANDOM_INT || "50");
+let TIMED_MESSAGE = process.env.TIMED_MESSAGE || "Check out our latest content here: http://example.com";
+let TIMED_MESSAGE_TIME = parseInt(process.env.TIMED_MESSAGE_TIME || "5");
 
 const app = express();
 const expressWsInstance = expressWs(app);
@@ -33,7 +35,13 @@ console.log('Environment Variables:', process.env);
 
 bot.onConnected((addr, port) => {
     console.log(`* Connected to ${addr}:${port}`);
-    CHANNELS.forEach(channel => console.log(`* Joining ${channel}`));
+    CHANNELS.forEach(channel => {
+        console.log(`* Joining ${channel}`);
+        setInterval(async () => {
+            const response = await openai_ops.createTimedMessage(TIMED_MESSAGE);
+            bot.say(channel, response);
+        }, TIMED_MESSAGE_TIME * 60000); // TIMED_MESSAGE_TIME in minutes
+    });
 });
 
 bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
@@ -85,7 +93,7 @@ bot.onMessage(async (channel, user, message, self) => {
 
 // Setup dynamic variable management
 app.post('/update-vars', (req, res) => {
-    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt } = req.body;
+    const { gptMode, historyLength, openaiApiKey, modelName, twitchUser, commandName, channels, sendUsername, enableTts, enableChannelPoints, botPrompt, randomInt, timedMessage, timedMessageTime } = req.body;
 
     GPT_MODE = gptMode || GPT_MODE;
     HISTORY_LENGTH = parseInt(historyLength) || HISTORY_LENGTH;
@@ -99,6 +107,8 @@ app.post('/update-vars', (req, res) => {
     ENABLE_CHANNEL_POINTS = enableChannelPoints !== undefined ? enableChannelPoints === "true" : ENABLE_CHANNEL_POINTS;
     BOT_PROMPT = botPrompt || BOT_PROMPT;
     RANDOM_INT = parseInt(randomInt) || RANDOM_INT;
+    TIMED_MESSAGE = timedMessage || TIMED_MESSAGE;
+    TIMED_MESSAGE_TIME = parseInt(timedMessageTime) || TIMED_MESSAGE_TIME;
 
     // Update openai_ops instance
     openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, TWITCH_USER);
