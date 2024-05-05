@@ -27,7 +27,7 @@ app.set('view engine', 'ejs');
 app.use(express.json({ extended: true, limit: '1mb' }));
 app.use('/public', express.static('public'));
 
-const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT);
+const openai_ops = new OpenAIOperations(BOT_PROMPT, OPENAI_API_KEY, MODEL_NAME, HISTORY_LENGTH, RANDOM_INT, "%BOT_PROMPT%");
 const bot = new TwitchBot(TWITCH_USER, TWITCH_AUTH, CHANNELS, OPENAI_API_KEY, ENABLE_TTS);
 
 job.start();
@@ -43,7 +43,7 @@ bot.onDisconnected(reason => console.log(`Disconnected: ${reason}`));
 bot.connect(() => console.log("Bot connected!"), error => console.log("Bot couldn't connect:", error));
 
 bot.onMessage(async (channel, user, message, self) => {
-    if (self) return; // Ignore messages from the bot itself
+    if (self) return;
 
     // Handle random interactions that are not commands
     if (!message.startsWith('!')) {
@@ -79,6 +79,7 @@ bot.onMessage(async (channel, user, message, self) => {
         }
     }
 });
+
 
 
 
