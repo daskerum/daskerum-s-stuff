@@ -1,12 +1,13 @@
 import OpenAI from "openai";
 
 export class OpenAIOperations {
-    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT) {
+    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT, twitchUser) {
         this.messages = [{ role: "system", content: BOT_PROMPT }];
         this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
         this.RANDOM_INT = RANDOM_INT;
+        this.twitchUser = twitchUser;
         this.lastCalled = Date.now();
         this.cooldownPeriod = 10000; // 10 seconds
         this.openai = new OpenAI({ apiKey: openai_key });
@@ -20,9 +21,9 @@ export class OpenAIOperations {
         }
     }
 
-    async randomInteraction(text, user, twitchUser) {
+    async randomInteraction(text, user) {
         const randomChance = Math.floor(Math.random() * 100);
-        if (randomChance < this.RANDOM_INT && !text.startsWith("!") && !text.startsWith("/") && user.username !== twitchUser) {
+        if (randomChance < this.RANDOM_INT && !text.startsWith("!") && !text.startsWith("/") && user.username !== this.twitchUser) {
             const prompt = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
             return await this.make_openai_call(prompt, text);
         } else {
@@ -42,7 +43,7 @@ export class OpenAIOperations {
         try {
             // Detect language from the original text
             const langResponse = await this.openai.completions.create({
-                model: "text-davinci-003",
+                model: "gpt-3.5-turbo",
                 prompt: `Identify the language of the following text: ${originalText}`,
                 max_tokens: 10
             });
