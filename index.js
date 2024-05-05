@@ -64,7 +64,7 @@ bot.onMessage(async (channel, user, message, self) => {
             const response = await openai_ops.make_openai_call(text, message);
             if (response) {
                 // Handle command response
-                response.match(new RegExp(`.{1,${399}}`, "g")).forEach((msg, index) => {
+                response.match(new Regexp(`.{1,${399}}`, "g")).forEach((msg, index) => {
                     setTimeout(() => bot.say(channel, msg), 1000 * index);
                 });
             }
