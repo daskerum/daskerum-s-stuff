@@ -29,3 +29,11 @@ services:
         value: "false"
       - key: ENABLE_CHANNEL_POINTS
         value: "false"
+      - key: LINK
+        value: <link-here>
+      - key: TIMED_MESSAGE_TIME
+       value: <timed-message-time>
+      - key: RANDIM_INT
+        value: <random-init>
+      - key: BOT_PROMPT
+        value: <bot-prompt>
