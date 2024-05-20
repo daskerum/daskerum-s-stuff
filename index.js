@@ -7,10 +7,12 @@ import dotenv from 'dotenv';
 import OpenAIOperations from './openai_operations.js';
 import Log from './models/Log.js';
 import Settings from './models/Settings.js';
+import expressWs from 'express-ws';
 
 dotenv.config();
 
 const app = express();
+expressWs(app);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
@@ -191,7 +193,7 @@ app.all('/', async (req, res) => {
 const server = app.listen(3000, () => console.log('Server running on port 3000'));
 
 // WebSocket for updates
-const wss = expressWsInstance.getWss();
+const wss = expressWs(app);
 app.ws('/check-for-updates', (ws, req) => {
     ws.on('message', message => console.log("WebSocket message received:", message));
 });
