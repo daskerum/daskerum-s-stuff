@@ -11,7 +11,10 @@ expressWs(app);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+// Set the views directory and view engine
+app.set('views', './views');
 app.set('view engine', 'ejs');
+
 app.use('/public', express.static('public'));
 
 // Bot Configuration
