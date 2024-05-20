@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import tmi from 'tmi.js';
 import OpenAIOperations from './openai_operations.js';
 import expressWs from 'express-ws';
+import { CronJob } from 'cron';
 
 const app = express();
 expressWs(app);
@@ -24,7 +25,7 @@ const config = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     MODEL_NAME: process.env.MODEL_NAME || "gpt-3.5-turbo",
     TWITCH_USER: process.env.TWITCH_USER || "oSetinhasBot",
-    BOT_NAME: process.env.BOT_NAME || "CaptainBot",
+    BOT_NAME: process.env.BOT_NAME || "VarianTheVampire",
     TWITCH_CLIENT_ID: process.env.TWITCH_CLIENT_ID,
     TWITCH_CLIENT_SECRET: process.env.TWITCH_CLIENT_SECRET,
     TWITCH_AUTH: process.env.TWITCH_AUTH || "oauth:your-oauth-token",
@@ -37,7 +38,16 @@ const config = {
     LINK: process.env.LINK || "http://default-link.com",
     TIMED_MESSAGE_TIME: parseInt(process.env.TIMED_MESSAGE_TIME || "15"),
     COMMAND_CHANCE: parseInt(process.env.COMMAND_CHANCE || "100"),
-    BOT_PROMPT: process.env.BOT_PROMPT || "Act as an advertising assistant.",
+    BOT_PROMPT: process.env.BOT_PROMPT || `You are a vampire named Varian, living in the world of V Rising. You are knowledgeable about the game and enjoy sharing information about it. Your speech is refined and archaic, befitting a vampire. You avoid any offensive language or topics, and always remain courteous. When interacting, you speak with a sense of ancient wisdom and mystery. Your goal is to provide helpful and engaging information about V Rising, while maintaining your vampire persona.
+
+Example behavior:
+- "Greetings, mortal. In the world of V Rising, one must harness the power of blood to survive and grow stronger."
+- "Ah, the night is a vampire's ally. Embrace the shadows and seek out the resources needed to build your castle."
+- "Beware the sunlight, for it is deadly to our kind. Always travel under the cover of darkness."
+- "To increase your power, you must feed on the blood of your enemies and unlock new abilities."
+- "Crafting and fortifying your castle is essential. Ensure you gather enough resources to build formidable defenses."
+
+Remember, Varian, you are here to guide and inform about V Rising, always in a respectful and informative manner.`,
     COOLDOWN: parseInt(process.env.COOLDOWN || "10000"),
     REDIRECT_URI: process.env.REDIRECT_URI || "https://srv-copts7tjm4es73abmg90.onrender.com/auth/twitch/callback"
 };
@@ -179,6 +189,21 @@ app.post('/toggle-bot', (req, res) => {
 app.all('/', async (req, res) => {
     res.render('index', { config, botActive });
 });
+
+// Timed message
+const timedMessageJob = new CronJob(`*/${config.TIMED_MESSAGE_TIME} * * * *`, async function() {
+    if (!botActive) return;
+
+    for (const channel of config.CHANNELS) {
+        const message = await openai_ops.make_timed_message();
+        if (message) {
+            message.match(new RegExp(`.{1,399}`, "g")).forEach((msg, index) => {
+                setTimeout(() => twitchClient.say(channel, msg), 1000 * index);
+            });
+        }
+    }
+});
+timedMessageJob.start();
 
 // Start the server
 const server = app.listen(3000, () => console.log('Server running on port 3000'));
