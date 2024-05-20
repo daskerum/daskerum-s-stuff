@@ -1,17 +1,21 @@
 import OpenAI from "openai";
 
 class OpenAIOperations {
-    constructor(BOT_PROMPT, openai_key, model_name, history_length, RANDOM_INT, twitchUser, link) {
-        this.messages = [{ role: "system", content: BOT_PROMPT }];
+    constructor(openai_key, model_name = "gpt-3.5-turbo", history_length, randomChance, twitchUser, link, commandChance, botPrompt, cooldownPeriod) {
+        this.messages = [{ role: "system", content: botPrompt }];
         this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
-        this.RANDOM_INT = RANDOM_INT;
+        this.randomChance = randomChance;
         this.twitchUser = twitchUser;
         this.link = link;
         this.lastCalled = Date.now();
-        this.cooldownPeriod = 10000; // 10 seconds
+        this.cooldownPeriod = cooldownPeriod; // COOLDOWN mekanizması buradan yönetilir
         this.openai = new OpenAI({ apiKey: openai_key });
+        this.botPrompt = botPrompt;
+        this.commandChance = commandChance; // Chance for command execution
+        this.commandCooldowns = new Map();
+        this.randomCooldowns = new Map();
     }
 
     check_history_length() {
@@ -23,18 +27,29 @@ class OpenAIOperations {
     }
 
     async randomInteraction(text, user) {
+        if (this.randomCooldowns.has(user.username) && Date.now() - this.randomCooldowns.get(user.username) < this.cooldownPeriod) {
+            console.log(`Cooldown in effect for user: ${user.username}`);
+            return null;
+        }
+
         const randomChance = Math.floor(Math.random() * 100);
-        if (randomChance < this.RANDOM_INT && !text.startsWith("!") && !text.startsWith("/") && user.username !== this.twitchUser) {
-            const prompt = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
-            return await this.make_openai_call(prompt, text);
+        if (randomChance < this.randomChance && !text.startsWith("!") && !text.startsWith("/") && user.username !== this.twitchUser) {
+            this.randomCooldowns.set(user.username, Date.now());
+            const prompt = `${this.botPrompt}\nUser: ${text}\nAssistant:`;
+            return await this.make_openai_call(prompt);
         } else {
             console.log("No random interaction or bot is trying to reply to itself.");
             return null;
         }
     }
 
-    async make_openai_call(text, originalText) {
+    async make_openai_call(prompt) {
         const currentTime = Date.now();
+        if (prompt == null) {
+            console.log("Invalid prompt: null");
+            return null;
+        }
+
         if (currentTime - this.lastCalled < this.cooldownPeriod) {
             console.log("Cooldown in effect. Try again later.");
             return null;  // Prevent output during cooldown
@@ -42,18 +57,7 @@ class OpenAIOperations {
         this.lastCalled = currentTime;
 
         try {
-            // Detect language from the original text
-            const langResponse = await this.openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
-                messages: [{role: "system", content: `Identify the language of the following text: ${originalText}`}],
-                max_tokens: 10
-            });
-
-            const detectedLanguage = langResponse.choices[0].message.content.trim();
-
-            // Use persona and language in the conversation context
-            const conversationContext = `${this.messages[0].content} Respond in ${detectedLanguage}.\nRecent Conversation:\n${this.getRecentMessages()}`;
-            this.messages.push({ role: "user", content: text });
+            this.messages.push({ role: "user", content: prompt });
             this.check_history_length();
 
             const response = await this.openai.chat.completions.create({
@@ -81,14 +85,12 @@ class OpenAIOperations {
         }
     }
 
-    async make_timed_message(prompt) {
+    async make_timed_message() {
+        const prompt = `${this.botPrompt}\nCreate a message related to the channel and include the following link: ${this.link}`;
         try {
-            this.messages.push({ role: "user", content: prompt });
-            this.check_history_length();
-
             const response = await this.openai.chat.completions.create({
                 model: this.model_name,
-                messages: this.messages,
+                messages: [{ role: "system", content: this.botPrompt }, { role: "user", content: prompt }],
                 temperature: 0.9,
                 max_tokens: 150,
                 top_p: 1,
@@ -99,9 +101,7 @@ class OpenAIOperations {
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
-                agent_response += ` ${this.link}`;  // Append the link
-                this.messages.push({ role: "assistant", content: agent_response });
-                console.log(`Agent Response: ${agent_response}`);
+                console.log(`Timed Message Response: ${agent_response}`);
                 return agent_response;
             } else {
                 throw new Error("No choices returned from OpenAI");
@@ -113,37 +113,23 @@ class OpenAIOperations {
     }
 
     getRecentMessages() {
-        // This function returns the last few messages to give context to the AI
         return this.messages.slice(-7).map(msg => `${msg.role}: ${msg.content}`).join('\n');
     }
 
-    async make_openai_call_completion(text) {
-        try {
-            const formattedText = `${this.messages[0].content}\nUser: ${text}\nAssistant:`;
-            this.messages.push({ role: "user", content: formattedText });
-            this.check_history_length();
+    async executeCommand(command, text, user) {
+        if (this.commandCooldowns.has(user.username) && Date.now() - this.commandCooldowns.get(user.username) < this.cooldownPeriod) {
+            console.log(`Command cooldown in effect for user: ${user.username}`);
+            return null;
+        }
 
-            const response = await this.openai.chat.completions.create({
-                model: this.model_name,
-                messages: [{role: "system", content: this.messages[0].content}, {role: "user", content: text}],
-                temperature: 1,
-                max_tokens: 256,
-                top_p: 1,
-                frequency_penalty: 0,
-                presence_penalty: 0,
-            });
-
-            if (response.choices) {
-                let agent_response = response.choices[0].message.content;
-                console.log(`Agent Response: ${agent_response}`);
-                this.messages.push({ role: "assistant", content: agent_response });
-                return agent_response;
-            } else {
-                throw new Error("No choices returned from OpenAI");
-            }
-        } catch (error) {
-            console.error("Error in make_openai_call_completion:", error);
-            return "Sorry, something went wrong. Please try again later.";
+        const commandChance = Math.floor(Math.random() * 100);
+        if (commandChance < this.commandChance) {
+            this.commandCooldowns.set(user.username, Date.now());
+            const prompt = `${this.botPrompt}\nUser: ${text}\nAssistant:`;
+            return await this.make_openai_call(prompt);
+        } else {
+            console.log("Command not executed due to chance setting.");
+            return null;
         }
     }
 }
