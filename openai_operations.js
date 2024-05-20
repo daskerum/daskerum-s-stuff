@@ -10,7 +10,7 @@ class OpenAIOperations {
         this.twitchUser = twitchUser;
         this.link = link;
         this.lastCalled = Date.now();
-        this.cooldownPeriod = cooldownPeriod; // COOLDOWN mekanizması buradan yönetilir
+        this.cooldownPeriod = cooldownPeriod; // COOLDOWN mechanism managed here
         this.openai = new OpenAI({ apiKey: openai_key });
         this.botPrompt = botPrompt;
         this.commandChance = commandChance; // Chance for command execution
