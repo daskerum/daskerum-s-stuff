@@ -4,8 +4,6 @@ import qs from 'qs';
 import bodyParser from 'body-parser';
 import tmi from 'tmi.js';
 import OpenAIOperations from './openai_operations.js';
-import Log from './models/Log.js';
-import Settings from './models/Settings.js';
 import expressWs from 'express-ws';
 
 const app = express();
@@ -152,11 +150,6 @@ app.post('/update-vars', async (req, res) => {
 
     Object.assign(config, updatedConfig);
 
-    await Settings.deleteMany({});
-    for (const [key, value] of Object.entries(updatedConfig)) {
-        await Settings.create({ key, value: value.toString() });
-    }
-
     openai_ops = new OpenAIOperations(
         config.OPENAI_API_KEY,
         config.MODEL_NAME,
@@ -181,8 +174,7 @@ app.post('/toggle-bot', (req, res) => {
 
 // Serve the control panel
 app.all('/', async (req, res) => {
-    const logs = await Log.find({}).sort({ timestamp: -1 }).limit(100);
-    res.render('index', { config, logs, botActive });
+    res.render('index', { config, botActive });
 });
 
 // Start the server
@@ -200,11 +192,5 @@ function notifyFileChange(url) {
     });
 }
 
-// Log saving function
-function logMessage(level, message) {
-    const log = new Log({ level, message });
-    log.save().catch(err => console.log('Error saving log:', err));
-}
-
 // Example log entry
-logMessage('info', 'Bot started successfully');
+console.log('info', 'Bot started successfully');
