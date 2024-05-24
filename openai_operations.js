@@ -73,6 +73,7 @@ class OpenAIOperations {
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
+                agent_response = this.ensureCharacterLimit(agent_response, 500);  // Ensure character limit
                 this.messages.push({ role: "assistant", content: agent_response });
                 console.log(`Agent Response: ${agent_response}`);
                 return agent_response;
@@ -81,12 +82,12 @@ class OpenAIOperations {
             }
         } catch (error) {
             console.error("Error in make_openai_call:", error);
-            return "Sorry, something went wrong. Please try again later.";
+            return "Üzgünüm, bir sorun oluştu. Lütfen daha sonra tekrar deneyin.";
         }
     }
 
     async make_timed_message() {
-        const prompt = `${this.botPrompt}\nCreate a message related to the channel and include the following link: ${this.link}`;
+        const prompt = `${this.botPrompt}\nKanal ile ilgili bir mesaj oluştur ve şu bağlantıyı ekle: ${this.link}`;
         try {
             const response = await this.openai.chat.completions.create({
                 model: this.model_name,
@@ -101,6 +102,7 @@ class OpenAIOperations {
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
+                agent_response = this.ensureCharacterLimit(agent_response, 500);  // Ensure character limit
                 console.log(`Timed Message Response: ${agent_response}`);
                 return agent_response;
             } else {
@@ -108,7 +110,7 @@ class OpenAIOperations {
             }
         } catch (error) {
             console.error("Error in make_timed_message:", error);
-            return "Sorry, something went wrong. Please try again later.";
+            return "Üzgünüm, bir sorun oluştu. Lütfen daha sonra tekrar deneyin.";
         }
     }
 
@@ -131,6 +133,13 @@ class OpenAIOperations {
             console.log("Command not executed due to chance setting.");
             return null;
         }
+    }
+
+    ensureCharacterLimit(text, limit) {
+        if (text.length > limit) {
+            return text.substring(0, limit);
+        }
+        return text;
     }
 }
 
