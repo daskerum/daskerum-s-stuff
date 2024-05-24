@@ -73,6 +73,17 @@ class OpenAIOperations {
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
+
+                // Kurallara uygunluğu kontrol et
+                if (agent_response.includes('#')) {
+                    console.log("Response contains # character, modifying response.");
+                    agent_response = agent_response.replace(/#/g, '');
+                }
+                if (agent_response.length > 500) {
+                    console.log("Response exceeds 500 characters, trimming response.");
+                    agent_response = agent_response.substring(0, 497) + '...';
+                }
+
                 this.messages.push({ role: "assistant", content: agent_response });
                 console.log(`Agent Response: ${agent_response}`);
                 return agent_response;
