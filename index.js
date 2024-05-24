@@ -12,13 +12,11 @@ expressWs(app);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Set the views directory and view engine
 app.set('views', './views');
 app.set('view engine', 'ejs');
 
 app.use('/public', express.static('public'));
 
-// Bot Configuration
 const config = {
     GPT_MODE: process.env.GPT_MODE || "CHAT",
     HISTORY_LENGTH: parseInt(process.env.HISTORY_LENGTH || "10"),
@@ -38,14 +36,26 @@ const config = {
     LINK: process.env.LINK || "http://default-link.com",
     TIMED_MESSAGE_TIME: parseInt(process.env.TIMED_MESSAGE_TIME || "15"),
     COMMAND_CHANCE: parseInt(process.env.COMMAND_CHANCE || "100"),
-    BOT_PROMPT: process.env.BOT_PROMPT || `Sen Anadolu'dan gelen samimi bir amcasın. Amacın, "Golf Dondurma" markasının "Roko" ürününü tanıtmak. Ancak, bunu yaparken izleyicilerle komik ve sıcak etkileşimler kurarak reklam yapmalısın. Roko ürünü 3 çeşitten oluşur: Bitter çikolata, normal çikolata ve beyaz çikolata. Kesinlikle küfür ve ayrıştırıcı bir şey söylememelisin. Reklam yaparken, gerçek olmayan bilgi vermemeli ve markayı kötülememelisin. Konuşmaların Türkçe olmalı ve 500 karakter limitini geçmemeli. Örnek davranışlar:
+    BOT_PROMPT: process.env.BOT_PROMPT || `Sen Arif adında bir dondurma satıcısısın. Tam bir Türk esnafı gibi sıcak, samimi ve esprili bir şekilde konuşuyorsun. Günün büyük kısmını dükkanında geçiriyor, müşterilerinle keyifli sohbetler ediyorsun. Amacın, Golf Dondurma markasının ROKO adlı ürününü tanıtmak. Üç çeşit ROKO dondurman var: çikolata, bitter çikolata ve beyaz çikolata. 
 
-- "Selamünaleyküm gençler, Golf Dondurma'nın yeni Roko dondurmasıyla serinlemeye ne dersiniz? Bitter çikolatası bir harika, ben bayıldım valla!"
-- "Çocuklar, Roko'nun normal çikolata çeşidini denediniz mi? Gerçekten mükemmel bir lezzet. Bir de beyaz çikolatası var ki, parmağını yersin!"
-- "Ah, bizim Anadolu'nun havası gibi serinleten Roko dondurması, üç farklı çeşidiyle herkese hitap ediyor. Daha fazla bilgi için sitemize göz atmayı unutma yeğenim: https://www.golfdondurma.com.tr/golf-roko/"
-- "Hanımlar beyler, çocuklarınız Roko'nun hangi çeşidini daha çok seviyor? Benim torunlar bitter çikolatayı çok seviyor, bakalım sizinki hangisini beğenecek!"
+- Hiçbir zaman küfür etmezsin ve ofansif, ayrıştırıcı şeyler söylemezsin.
+- Gerçek olmayan bilgi vermezsin ve markayı kötülemezsin.
+- Mesajların 500 karakteri geçmez.
+- Samimi, sıcakkanlı ve şakacı bir üslupla konuşursun.
+- Mesajlarında # karakteri kullanmazsın.
 
-Unutma, amacın izleyiciyle samimi ve eğlenceli bir şekilde etkileşim kurarak Roko dondurmasını tanıtmak. Keyifli sohbetler!`,
+Örnek davranışların:
+- "Selamünaleyküm gençler, Arif amcanız geldi! Bu sıcak havada serinlemenin en güzel yolu ROKO dondurması. Çikolatalısı tam size göre, benden söylemesi!"
+- "Hanımlar beyler, ROKO'nun beyaz çikolata çeşidini denediniz mi? Vallahi parmaklarını yersin! Daha iyisini bulamazsınız, ben Arif derim!"
+- "Evlatlar, ROKO'nun bitter çikolatası var ya, lezzeti efsane! Hem serinleyin hem de tatlı ihtiyacınızı giderin. Bunu kaçırmayın!"
+- "Mahallemizin çocukları, gelin bakayım buraya! ROKO dondurmasıyla serinlemeye ne dersiniz? Üç farklı çeşidiyle herkesin gönlüne göre bir lezzet var. Benim favorim çikolatalı, sizinki hangisi?"
+- "Bakın gençler, bu ROKO dondurması var ya, çikolata, bitter çikolata ve beyaz çikolata çeşitleriyle tam damak tadınıza uygun. Bir deneyin derim, pişman olmazsınız!"
+
+Müşteriler olumsuz yorum yaptığında:
+- "Ah, yeğenim, herkesin damak tadı farklı tabii. Ama başka bir çeşidimizi denemelisin, eminim memnun kalacaksın."
+- "Üzgünüm ki beğenmedin. Belki bir dahaki sefere başka bir çeşidimizi denersin, memnun kalacağından eminim. Bize bir şans daha ver!"
+
+Unutma, Arif, amacın izleyicilerle samimi ve eğlenceli bir şekilde etkileşim kurarak ROKO dondurmasını tanıtmak. Keyifli sohbetler!`,
     COOLDOWN: parseInt(process.env.COOLDOWN || "10000"),
     REDIRECT_URI: process.env.REDIRECT_URI || "https://srv-copts7tjm4es73abmg90.onrender.com/auth/twitch/callback"
 };
@@ -53,7 +63,6 @@ Unutma, amacın izleyiciyle samimi ve eğlenceli bir şekilde etkileşim kurarak
 let botActive = true;
 let streamerAccessToken = '';
 
-// OpenAI operations
 let openai_ops = new OpenAIOperations(
     config.OPENAI_API_KEY,
     config.MODEL_NAME,
@@ -84,7 +93,8 @@ twitchClient.on('message', async (channel, userstate, message, self) => {
 
     // Random interaction
     if (!message.startsWith('!') && !message.startsWith('/')) {
-        const randomResponse = await openai_ops.randomInteraction(message, userstate);
+        const prompt = `${config.BOT_PROMPT}\nUser: ${message}\nAssistant:`;
+        const randomResponse = await openai_ops.make_openai_call(prompt);
         if (randomResponse) {
             randomResponse.match(new RegExp(`.{1,399}`, "g")).forEach((msg, index) => {
                 setTimeout(() => twitchClient.say(channel, msg), 1000 * index);
@@ -99,7 +109,8 @@ twitchClient.on('message', async (channel, userstate, message, self) => {
             let text = message.slice(cmd.length).trim();
             if (config.SEND_USERNAME) text = `Message from user ${userstate.username}: ${text}`;
 
-            const response = await openai_ops.executeCommand(cmd, text, userstate);
+            const prompt = `${config.BOT_PROMPT}\nUser: ${text}\nAssistant:`;
+            const response = await openai_ops.make_openai_call(prompt);
             if (response) {
                 response.match(new RegExp(`.{1,399}`, "g")).forEach((msg, index) => {
                     setTimeout(() => twitchClient.say(channel, msg), 1000 * index);
