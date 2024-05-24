@@ -6,14 +6,14 @@ class OpenAIOperations {
         this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
-        this.randomChance = randomChance;
+        this.randomChance = randomChance; // randomChance değişkeni
         this.twitchUser = twitchUser;
         this.link = link;
         this.lastCalled = Date.now();
-        this.cooldownPeriod = cooldownPeriod; // COOLDOWN mechanism managed here
+        this.cooldownPeriod = cooldownPeriod; // COOLDOWN mekanizması
         this.openai = new OpenAI({ apiKey: openai_key });
         this.botPrompt = botPrompt;
-        this.commandChance = commandChance; // Chance for command execution
+        this.commandChance = commandChance; // commandChance değişkeni
         this.commandCooldowns = new Map();
         this.randomCooldowns = new Map();
     }
@@ -33,6 +33,7 @@ class OpenAIOperations {
         }
 
         const randomChance = Math.floor(Math.random() * 100);
+        console.log(`Random chance: ${randomChance}, Threshold: ${this.randomChance}`); // Log random chance
         if (randomChance < this.randomChance && !text.startsWith("!") && !text.startsWith("/") && user.username !== this.twitchUser) {
             this.randomCooldowns.set(user.username, Date.now());
             const prompt = `${this.botPrompt}\nUser: ${text}\nAssistant:`;
@@ -135,6 +136,7 @@ class OpenAIOperations {
         }
 
         const commandChance = Math.floor(Math.random() * 100);
+        console.log(`Command chance: ${commandChance}, Threshold: ${this.commandChance}`); // Log command chance
         if (commandChance < this.commandChance) {
             this.commandCooldowns.set(user.username, Date.now());
             const prompt = `${this.botPrompt}\nUser: ${text}\nAssistant:`;
