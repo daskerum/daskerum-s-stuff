@@ -34,7 +34,7 @@ const config = {
     ENABLE_CHANNEL_POINTS: process.env.ENABLE_CHANNEL_POINTS === "true",
     RANDOM_CHANCE: parseInt(process.env.RANDOM_CHANCE || "20"),
     LINK: process.env.LINK || "http://default-link.com",
-    TIMED_MESSAGE_TIME: parseInt(process.env.TIMED_MESSAGE_TIME || "15"),
+    TIMED_MESSAGE_TIME: parseInt(process.env.TIMED_MESSAGE_TIME) || 15,
     COMMAND_CHANCE: parseInt(process.env.COMMAND_CHANCE || "100"),
     BOT_PROMPT: process.env.BOT_PROMPT || `Sen Arif adında bir dondurma satıcısısın. Tam bir Türk esnafı gibi sıcak, samimi ve esprili bir şekilde konuşuyorsun. Günün büyük kısmını dükkanında geçiriyor, müşterilerinle keyifli sohbetler ediyorsun. Amacın, Golf Dondurma markasının ROKO adlı ürününü tanıtmak. Üç çeşit ROKO dondurman var: çikolata, bitter çikolata ve beyaz çikolata. 
 
@@ -45,7 +45,7 @@ const config = {
 - Mesajlarında # karakteri kullanmazsın.
 
 Örnek davranışların:
-- "Selamünaleyküm gençler, Arif amcanız geldi! Bu sıcak havada serinlemenin en güzel yolu ROKO dondurması. Çikolatalısı tam size göre, benden söylemesi!"
+- "Selamünaleyküm gençler, Arif amcanız burada! Bu sıcak günlerde serinlemenin en güzel yolu ROKO dondurması. Çikolatalısı tam size göre, benden söylemesi!"
 - "Hanımlar beyler, ROKO'nun beyaz çikolata çeşidini denediniz mi? Vallahi parmaklarını yersin! Daha iyisini bulamazsınız, ben Arif derim!"
 - "Evlatlar, ROKO'nun bitter çikolatası var ya, lezzeti efsane! Hem serinleyin hem de tatlı ihtiyacınızı giderin. Bunu kaçırmayın!"
 - "Mahallemizin çocukları, gelin bakayım buraya! ROKO dondurmasıyla serinlemeye ne dersiniz? Üç farklı çeşidiyle herkesin gönlüne göre bir lezzet var. Benim favorim çikolatalı, sizinki hangisi?"
@@ -94,7 +94,7 @@ twitchClient.on('message', async (channel, userstate, message, self) => {
     // Random interaction
     if (!message.startsWith('!') && !message.startsWith('/')) {
         const prompt = `${config.BOT_PROMPT}\nUser: ${message}\nAssistant:`;
-        const randomResponse = await openai_ops.make_openai_call(prompt);
+        const randomResponse = await openai_ops.randomInteraction(message, userstate);
         if (randomResponse) {
             randomResponse.match(new RegExp(`.{1,399}`, "g")).forEach((msg, index) => {
                 setTimeout(() => twitchClient.say(channel, msg), 1000 * index);
@@ -110,7 +110,7 @@ twitchClient.on('message', async (channel, userstate, message, self) => {
             if (config.SEND_USERNAME) text = `Message from user ${userstate.username}: ${text}`;
 
             const prompt = `${config.BOT_PROMPT}\nUser: ${text}\nAssistant:`;
-            const response = await openai_ops.make_openai_call(prompt);
+            const response = await openai_ops.executeCommand(cmd, text, userstate);
             if (response) {
                 response.match(new RegExp(`.{1,399}`, "g")).forEach((msg, index) => {
                     setTimeout(() => twitchClient.say(channel, msg), 1000 * index);
@@ -164,7 +164,7 @@ app.post('/update-vars', async (req, res) => {
         ENABLE_CHANNEL_POINTS: enableChannelPoints !== undefined ? enableChannelPoints === "true" : config.ENABLE_CHANNEL_POINTS,
         RANDOM_CHANCE: parseInt(randomChance) || config.RANDOM_CHANCE,
         LINK: link || config.LINK,
-        TIMED_MESSAGE_TIME: parseInt(timedMessageTime) || config.TIMED_MESSAGE_TIME,
+        TIMED_MESSAGE_TIME: parseInt(timedMessageTime) || 15,
         COMMAND_CHANCE: parseInt(commandChance) || config.COMMAND_CHANCE,
         BOT_PROMPT: botPrompt || config.BOT_PROMPT,
         COOLDOWN: parseInt(cooldown) || config.COOLDOWN
@@ -178,7 +178,6 @@ app.post('/update-vars', async (req, res) => {
         config.HISTORY_LENGTH,
         config.RANDOM_CHANCE,
         config.TWITCH_USER,
-        config.BOT_NAME,
         config.LINK,
         config.COMMAND_CHANCE,
         config.BOT_PROMPT,
