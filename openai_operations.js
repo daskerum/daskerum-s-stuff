@@ -6,14 +6,14 @@ class OpenAIOperations {
         this.api_key = openai_key;
         this.model_name = model_name;
         this.history_length = history_length;
-        this.randomChance = randomChance; // randomChance değişkeni
+        this.randomChance = randomChance;
         this.twitchUser = twitchUser;
         this.link = link;
         this.lastCalled = Date.now();
-        this.cooldownPeriod = cooldownPeriod; // COOLDOWN mekanizması
+        this.cooldownPeriod = cooldownPeriod;
         this.openai = new OpenAI({ apiKey: openai_key });
         this.botPrompt = botPrompt;
-        this.commandChance = commandChance; // commandChance değişkeni
+        this.commandChance = commandChance;
         this.commandCooldowns = new Map();
         this.randomCooldowns = new Map();
     }
@@ -33,7 +33,7 @@ class OpenAIOperations {
         }
 
         const randomChance = Math.floor(Math.random() * 100);
-        console.log(`Random chance: ${randomChance}, Threshold: ${this.randomChance}`); // Log random chance
+        console.log(`Random chance: ${randomChance}, Threshold: ${this.randomChance}`);
         if (randomChance < this.randomChance && !text.startsWith("!") && !text.startsWith("/") && user.username !== this.twitchUser) {
             this.randomCooldowns.set(user.username, Date.now());
             const prompt = `${this.botPrompt}\nUser: ${text}\nAssistant:`;
@@ -53,7 +53,7 @@ class OpenAIOperations {
 
         if (currentTime - this.lastCalled < this.cooldownPeriod) {
             console.log("Cooldown in effect. Try again later.");
-            return null;  // Prevent output during cooldown
+            return null;
         }
         this.lastCalled = currentTime;
 
@@ -113,7 +113,7 @@ class OpenAIOperations {
 
             if (response.choices && response.choices.length > 0) {
                 let agent_response = response.choices[0].message.content;
-                agent_response += ` ${this.link}`;  // Ensure the link is added
+                agent_response += ` ${this.link}`; // Ensure the link is added
                 console.log(`Timed Message Response: ${agent_response}`);
                 return agent_response;
             } else {
@@ -136,7 +136,7 @@ class OpenAIOperations {
         }
 
         const commandChance = Math.floor(Math.random() * 100);
-        console.log(`Command chance: ${commandChance}, Threshold: ${this.commandChance}`); // Log command chance
+        console.log(`Command chance: ${commandChance}, Threshold: ${this.commandChance}`);
         if (commandChance < this.commandChance) {
             this.commandCooldowns.set(user.username, Date.now());
             const prompt = `${this.botPrompt}\nUser: ${text}\nAssistant:`;
